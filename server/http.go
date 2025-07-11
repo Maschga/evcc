@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
+	"strings"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/danielgtaylor/huma/v2/adapters/humamux"
 	eapi "github.com/evcc-io/evcc/api"
 	"github.com/evcc-io/evcc/api/globalconfig"
 	"github.com/evcc-io/evcc/core"
@@ -23,6 +27,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
+var Tags = struct {
+	General, Loadpoints, Vehicles, HomeBattery, Tariffs, Sessions, Auth, System string
+}{
+	"General", "Loadpoints", "Vehicles", "Home Battery", "Tariffs", "Sessions", "Auth", "System",
+}
+
 type route struct {
 	Method      string
 	Pattern     string
@@ -34,6 +44,35 @@ func (r route) Methods() []string {
 		return []string{r.Method}
 	}
 	return []string{r.Method, http.MethodOptions}
+}
+
+type route2 struct {
+	Operation   huma.Operation
+	HandlerFunc http.HandlerFunc
+}
+
+func (r route2) Methods() []string {
+	if r.Operation.Method == http.MethodGet {
+		return []string{r.Operation.Method}
+	}
+	return []string{r.Operation.Method, http.MethodOptions}
+}
+
+func convertGeneralURL(inputURL string) string {
+	re := regexp.MustCompile(`\{([a-zA-Z0-9]+:[^\}]+)\}`)
+
+	matches := re.FindAllStringSubmatch(inputURL, -1)
+
+	for _, match := range matches {
+		parameter := match[1]
+
+		parts := strings.Split(parameter, ":")
+		if len(parts) == 2 {
+			inputURL = strings.Replace(inputURL, match[0], "/"+parts[1], 1)
+		}
+	}
+
+	return inputURL
 }
 
 // HTTPd wraps an http.Server and adds the root router
@@ -120,6 +159,7 @@ func (s *HTTPd) RegisterSiteHandlers(site site.API, valueChan chan<- util.Param)
 	router := s.Server.Handler.(*mux.Router)
 
 	// api
+	api2 := setupApiSubrouter(router)
 	api := router.PathPrefix("/api").Subrouter()
 	api.Use(jsonHandler)
 	api.Use(handlers.CompressHandler)
@@ -135,8 +175,25 @@ func (s *HTTPd) RegisterSiteHandlers(site site.API, valueChan chan<- util.Param)
 		lp.SetSmartFeedInPriorityLimit(limit)
 	}
 
+	routes2 := map[string]route2{
+		"health": {huma.Operation{
+			Method:      "GET",
+			Path:        "/health",
+			Summary:     "Health check",
+			Description: "Returns 200 if the evcc loop runs as expected.",
+			Tags:        []string{Tags.General},
+			Responses: map[string]*huma.Response{
+				"200": {Description: "Success", Content: map[string]*huma.MediaType{
+					"text/plain": {Schema: &huma.Schema{Type: "string", Default: "OK"}},
+				}},
+				"500": {Description: "Failure", Content: map[string]*huma.MediaType{
+					"text/plain": {Schema: &huma.Schema{Type: "string", Default: "ERROR"}},
+				}},
+			},
+		}, healthHandler(site)},
+	}
+
 	routes := map[string]route{
-		"health":                  {"GET", "/health", healthHandler(site)},
 		"buffersoc":               {"POST", "/buffersoc/{value:[0-9.]+}", floatHandler(site.SetBufferSoc, site.GetBufferSoc)},
 		"bufferstartsoc":          {"POST", "/bufferstartsoc/{value:[0-9.]+}", floatHandler(site.SetBufferStartSoc, site.GetBufferStartSoc)},
 		"batterydischargecontrol": {"POST", "/batterydischargecontrol/{value:[01truefalse]+}", boolHandler(site.SetBatteryDischargeControl, site.GetBatteryDischargeControl)},
@@ -156,6 +213,12 @@ func (s *HTTPd) RegisterSiteHandlers(site site.API, valueChan chan<- util.Param)
 		"deletesession":           {"DELETE", "/session/{id:[0-9]+}", deleteSessionHandler},
 		"telemetry":               {"GET", "/settings/telemetry", getHandler(telemetry.Enabled)},
 		"telemetry2":              {"POST", "/settings/telemetry/{value:[01truefalse]+}", boolHandler(telemetry.Enable, telemetry.Enabled)},
+	}
+
+	for _, r := range routes2 {
+		api.Methods(r.Methods()...).Path(r.Operation.Path).Handler(r.HandlerFunc)
+		r.Operation.Path = convertGeneralURL(r.Operation.Path)
+		api2.DocumentOperation(&r.Operation)
 	}
 
 	for _, r := range routes {
@@ -358,4 +421,60 @@ func (s *HTTPd) RegisterSystemHandler(site *core.Site, valueChan chan<- util.Par
 			api.Methods(r.Methods()...).Path(r.Pattern).Handler(r.HandlerFunc)
 		}
 	}
+}
+
+// setupApiSubrouter creates and configures the /api subrouter
+func setupApiSubrouter(router *mux.Router) *huma.Group {
+	router.Use(jsonHandler)
+	router.Use(handlers.CompressHandler)
+	router.Use(handlers.CORS(
+		handlers.AllowedHeaders([]string{"Content-Type"}),
+	))
+	return huma.NewGroup(setupHuma(router), "/api")
+}
+
+func setupHuma(router *mux.Router) huma.API {
+	config := huma.DefaultConfig("REST API", "latest")
+	config.DocsPath = "/api/docs"
+	config.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
+		"cookieAuth": {
+			Type: "apiKey",
+			Name: "auth",
+			In:   "cookie",
+		},
+	}
+	config.Servers = []*huma.Server{
+		{
+			URL:         "/",
+			Description: "The current instance",
+		},
+		{
+			URL:         "https://demo.evcc.io",
+			Description: "Demo instance hosted by evcc",
+		},
+		{
+			URL: "{SCHEME}://{IP}:{PORT}",
+			Variables: map[string]*huma.ServerVariable{
+				"SCHEME": {
+					Default: "http",
+					Enum:    []string{"http", "https"},
+				},
+				"IP":   {Default: "192.168.XXX.XXX"},
+				"PORT": {Default: "7070"},
+			},
+			Description: "Any other instance",
+		},
+	}
+	config.Tags = []*huma.Tag{
+		{Name: Tags.General},
+		{Name: Tags.Loadpoints},
+		{Name: Tags.Vehicles},
+		{Name: Tags.HomeBattery},
+		{Name: Tags.Tariffs},
+		{Name: Tags.Sessions},
+		{Name: Tags.Auth},
+		{Name: Tags.System},
+	}
+
+	return humamux.New(router, config)
 }
