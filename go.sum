@@ -191,6 +191,8 @@ github.com/evcc-io/openapi-mcp v0.5.0 h1:reaw2dO1T353mvsu+x6Pg9FKhladHsrrqpwvev2
 github.com/evcc-io/openapi-mcp v0.5.0/go.mod h1:RthPUC8UIvrjKYDCb3QiQ8I5nop/pe6xsw1smNV511w=
 github.com/evcc-io/rct v0.1.2-0.20250315164247-d2f41b161785 h1:OWCBVMcPsVTffdiZN3VYaq9p4fsWlzd490J6pekaKLA=
 github.com/evcc-io/rct v0.1.2-0.20250315164247-d2f41b161785/go.mod h1:n6MTBU36QOadGlxxiADu86VaT5l0eYdbmFBHF14AD/s=
+github.com/evcc-io/rct v0.1.2-0.20250614103757-d962947a776e h1:yHI9d52v+8PqULpH/W2VriNi10VkB0kWe+3HbcYCl9Y=
+github.com/evcc-io/rct v0.1.2-0.20250614103757-d962947a776e/go.mod h1:n6MTBU36QOadGlxxiADu86VaT5l0eYdbmFBHF14AD/s=
 github.com/evcc-io/tesla-proxy-client v0.0.0-20240221194046-4168b3759701 h1:3JplY3KS6KMDVDNAU+3+KWmSWmoHIU34qwuIpW6SiHk=
 github.com/evcc-io/tesla-proxy-client v0.0.0-20240221194046-4168b3759701/go.mod h1:zWtAweBqXJTk3HSrPSecz3Q3a2hAUQ4vOE6paJfn03I=
 github.com/fatih/camelcase v1.0.0/go.mod h1:yN2Sb0lFhZJUdVvtELVWefmrXpuZESvPmqwoZc+/fpc=
