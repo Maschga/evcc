@@ -355,7 +355,7 @@ func adminPasswordValid(authObject auth.Auth, password string) bool {
 	return authObject.GetAuthMode() == auth.Disabled || authObject.IsAdminPasswordValid(password)
 }
 
-func getBackup(authObject auth.Auth) http.HandlerFunc {
+func getBackupUrl(authObject auth.Auth) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req loginRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -368,32 +368,38 @@ func getBackup(authObject auth.Auth) http.HandlerFunc {
 			return
 		}
 
-		settings.Persist()
+		downloadUrl := "/api/system/backup" // TODO: use expiring token
 
-		f, err := os.Open(db.FilePath)
-		if err != nil {
-			http.Error(w, "Could not open DB file: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-		defer f.Close()
-
-		filename := "evcc-backup-" + time.Now().Format("2006-01-02--15-04") + ".db"
-
-		fi, err := f.Stat()
-		if err != nil {
-			http.Error(w, "Could not stat DB file: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
-		w.Header().Set("Content-Type", "application/octet-stream")
-		w.Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
-
-		if _, err := io.Copy(w, f); err != nil {
-			http.Error(w, "Error streaming DB file: "+err.Error(), http.StatusInternalServerError)
-			return
+		if r.Header.Get("Accept") == "application/json" {
+			jsonWrite(w, map[string]string{"url": downloadUrl})
+		} else {
+			http.Redirect(w, r, downloadUrl, http.StatusFound)
 		}
 	}
+}
+
+func getBackup(w http.ResponseWriter, r *http.Request) {
+	settings.Persist()
+
+	f, err := os.Open(db.FilePath)
+	if err != nil {
+		http.Error(w, "Could not open DB file: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer f.Close()
+
+	fi, err := f.Stat()
+	if err != nil {
+		http.Error(w, "Could not stat DB file: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	filename := "evcc-backup-" + time.Now().Format("2006-01-02--15-04") + ".db"
+
+	w.Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
+	w.Header().Set("Content-Type", "application/octet-stream")
+
+	http.ServeContent(w, r, filename, fi.ModTime(), f)
 }
 
 // createLocalDatabaseBackup creates a local backup in case of catastrophic error in reset or restore

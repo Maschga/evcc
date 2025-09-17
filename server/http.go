@@ -349,7 +349,8 @@ func (s *HTTPd) RegisterSystemHandler(site *core.Site, valueChan chan<- util.Par
 			"log":        {"GET", "/log", logHandler},
 			"logareas":   {"GET", "/log/areas", logAreasHandler},
 			"clearcache": {"DELETE", "/cache", clearCacheHandler},
-			"backup":     {"POST", "/backup", getBackup(auth)},
+			"backupUrl":  {"POST", "/backup", getBackupUrl(auth)},
+			"backup":     {"GET", "/backup", getBackup},
 			"restore":    {"POST", "/restore", restoreDatabase(auth, shutdown)},
 			"reset":      {"POST", "/reset", resetDatabase(auth, shutdown)},
 			"shutdown": {"POST", "/shutdown", func(w http.ResponseWriter, r *http.Request) {

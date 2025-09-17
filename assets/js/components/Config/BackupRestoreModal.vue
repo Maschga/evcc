@@ -166,7 +166,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import GenericModal from "../Helper/GenericModal.vue";
-import api, { downloadFile } from "@/api";
+import api, { downloadFileFromUrl } from "@/api";
 import PropertyFileField from "./PropertyFileField.vue";
 import FormRow from "./FormRow.vue";
 import { isLoggedIn } from "../Auth/auth";
@@ -297,12 +297,15 @@ export default defineComponent({
 				api.post(
 					"/system/backup",
 					{ password: this.password },
-					{ responseType: "blob", validateStatus }
+					{
+						validateStatus: (status: number) => status >= 200 && status < 400,
+					}
 				)
 			);
+
 			if (res) {
 				this.closeConfirmModal();
-				downloadFile(res);
+				downloadFileFromUrl(res.data["url"]);
 			}
 		},
 		async restoreDatabase() {
