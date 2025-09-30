@@ -40,7 +40,7 @@ describe("basics", () => {
   });
 
   test("should return 39 slots", () => {
-    expect(result.length).eq(39);
+    expect(result.length).eq(192);
   });
 
   test("slots should be an hour apart", () => {
@@ -64,15 +64,14 @@ describe("basics", () => {
   test("slots after target should be toLate", () => {
     expect(result[0]!.toLate).eq(false);
     expect(result[1]!.toLate).eq(false);
-    expect(result[2]!.toLate).eq(true);
-    expect(result[3]!.toLate).eq(true);
+    expect(result[10]!.toLate).eq(true);
+    expect(result[10]!.toLate).eq(true);
   });
 
   test("slots are marked if charging is happening in them", () => {
     expect(result[0]!.charging).eq(false);
-    expect(result[1]!.charging).eq(true);
-    expect(result[2]!.charging).eq(false);
-    expect(result[3]!.charging).eq(false);
+    expect(result[4]!.charging).eq(true);
+    expect(result[8]!.charging).eq(false);
   });
 
   test("all slots have the same fixed value", () => {
@@ -124,17 +123,19 @@ describe("zoned tariffs", () => {
   });
 
   test("handle multiple charging slots", () => {
-    expect(result[0]!.charging).eq(true);
-    expect(result[1]!.charging).eq(true);
-    expect(result[2]!.charging).eq(false);
-    expect(result[3]!.charging).eq(true);
+    expect(result[0]!.charging).eq(false);
     expect(result[4]!.charging).eq(true);
-    expect(result[5]!.charging).eq(false);
+    expect(result[8]!.charging).eq(false);
+    expect(result[12]!.charging).eq(false);
+    expect(result[16]!.charging).eq(true);
   });
 
-  test("first slot is cheap, others are expensive", () => {
-    const [first, ...others] = result;
+  test("first hour is cheap, others are expensive", () => {
+    const [first, second, third, fourth, ...others] = result;
     expect(first!.value).eq(0.2);
+    expect(second!.value).eq(0.2);
+    expect(third!.value).eq(0.2);
+    expect(fourth!.value).eq(0.2);
     others.forEach((slot) => expect(slot.value).eq(0.4));
   });
 });
