@@ -221,7 +221,7 @@ func (s *HTTPd) RegisterSiteHandlers(site site.API, valueChan chan<- util.Param)
 }
 
 // RegisterSystemHandler provides system level handlers
-func (s *HTTPd) RegisterSystemHandler(site *core.Site, valueChan chan<- util.Param, cache *util.ParamCache, auth auth.Auth, shutdown func(), configFile string) {
+func (s *HTTPd) RegisterSystemHandler(site *core.Site, valueChan chan<- util.Param, cache *util.ParamCache, auth auth.Auth, shutdown func(http.ResponseWriter), configFile string) {
 	router := s.Server.Handler.(*mux.Router)
 
 	// api
@@ -358,7 +358,7 @@ func (s *HTTPd) RegisterSystemHandler(site *core.Site, valueChan chan<- util.Par
 			"restore":    {"POST", "/restore", restoreDatabase(auth, shutdown)},
 			"reset":      {"POST", "/reset", resetDatabase(auth, shutdown)},
 			"shutdown": {"POST", "/shutdown", func(w http.ResponseWriter, r *http.Request) {
-				shutdown()
+				shutdown(w)
 				w.WriteHeader(http.StatusNoContent)
 			}},
 		}

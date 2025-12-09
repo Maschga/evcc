@@ -402,7 +402,7 @@ func createLocalDatabaseBackup() error {
 	return nil
 }
 
-func restoreDatabase(authObject auth.Auth, shutdown func()) http.HandlerFunc {
+func restoreDatabase(authObject auth.Auth, shutdown func(http.ResponseWriter)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse multipart form
 		err := r.ParseMultipartForm(32 << 20) // 32MB max memory
@@ -450,17 +450,12 @@ func restoreDatabase(authObject auth.Auth, shutdown func()) http.HandlerFunc {
 			return
 		}
 
-		// Send response before shutting down so the proxy/client receives it
 		w.WriteHeader(http.StatusNoContent)
-		if f, ok := w.(http.Flusher); ok {
-			f.Flush()
-		}
-
-		shutdown()
+		shutdown(w)
 	}
 }
 
-func resetDatabase(authObject auth.Auth, shutdown func()) http.HandlerFunc {
+func resetDatabase(authObject auth.Auth, shutdown func(http.ResponseWriter)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Password string `json:"password"`
@@ -504,18 +499,7 @@ func resetDatabase(authObject auth.Auth, shutdown func()) http.HandlerFunc {
 			}
 		}
 
-		// close db connection to avoid on-shutdown writes
-		if err := db.Close(); err != nil {
-			jsonError(w, http.StatusInternalServerError, err)
-			return
-		}
-
-		// Send response before shutting down so the proxy/client receives it
 		w.WriteHeader(http.StatusNoContent)
-		if f, ok := w.(http.Flusher); ok {
-			f.Flush()
-		}
-
-		shutdown()
+		shutdown(w)
 	}
 }
