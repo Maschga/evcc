@@ -450,8 +450,13 @@ func restoreDatabase(authObject auth.Auth, shutdown func()) http.HandlerFunc {
 			return
 		}
 
-		shutdown()
+		// Send response before shutting down so the proxy/client receives it
 		w.WriteHeader(http.StatusNoContent)
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+
+		shutdown()
 	}
 }
 
@@ -505,7 +510,12 @@ func resetDatabase(authObject auth.Auth, shutdown func()) http.HandlerFunc {
 			return
 		}
 
-		shutdown()
+		// Send response before shutting down so the proxy/client receives it
 		w.WriteHeader(http.StatusNoContent)
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+
+		shutdown()
 	}
 }
