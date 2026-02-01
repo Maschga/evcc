@@ -8,6 +8,14 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/toml v1.6.0 h1:dRaEfpa2VI55EwlIW72hMRHdWouJeRF7TPYhI+AUQjk=
 github.com/BurntSushi/toml v1.6.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
+github.com/Maschga/rct v0.1.2-0.20260201143551-964a21f19f34 h1:lUJWbSu5WojMZxYaZECE28IjrnkesjTpP5LvF3lvhoc=
+github.com/Maschga/rct v0.1.2-0.20260201143551-964a21f19f34/go.mod h1:n6MTBU36QOadGlxxiADu86VaT5l0eYdbmFBHF14AD/s=
+github.com/Maschga/rct v0.1.2-0.20260201152008-ac311f03c2df h1:lFw8ziV8YZh9vKV/Ksu7mRLfvL5qqCuhtvTdbGxoe/A=
+github.com/Maschga/rct v0.1.2-0.20260201152008-ac311f03c2df/go.mod h1:n6MTBU36QOadGlxxiADu86VaT5l0eYdbmFBHF14AD/s=
+github.com/Maschga/rct v0.1.2-0.20260201154453-debce7b548e3 h1:1ozRyKRD7J5gpFUdd9+eCzfMC4pQ9/u2WFyJ7PzwG9E=
+github.com/Maschga/rct v0.1.2-0.20260201154453-debce7b548e3/go.mod h1:n6MTBU36QOadGlxxiADu86VaT5l0eYdbmFBHF14AD/s=
+github.com/Maschga/rct v0.1.2-0.20260201161311-75257487a034 h1:Z0MEsAwj+PTnrS6Sa88JDlpuOsej0Ii9Z/ckfadNkho=
+github.com/Maschga/rct v0.1.2-0.20260201161311-75257487a034/go.mod h1:n6MTBU36QOadGlxxiADu86VaT5l0eYdbmFBHF14AD/s=
 github.com/Masterminds/goutils v1.1.1 h1:5nUrii3FMTL5diU80unEVvNevw1nH4+ZV4DSLVJLSYI=
 github.com/Masterminds/goutils v1.1.1/go.mod h1:8cTjp+g8YejhMuvIA5y2vz3BpJxksy863GQaJW2MFNU=
 github.com/Masterminds/semver/v3 v3.3.0 h1:B8LGeaivUe71a5qox1ICM/JLl0NqZSW5CHyL+hmvYS0=
@@ -200,8 +208,6 @@ github.com/evcc-io/ocpp-go v0.0.0-20251212212612-b7f92ee0443b h1:5vFr7wOwoi5ylyb
 github.com/evcc-io/ocpp-go v0.0.0-20251212212612-b7f92ee0443b/go.mod h1:2kcukDdhui4u730VfnYVWuwzDLgw+mBRGDir/QAyBhg=
 github.com/evcc-io/openapi-mcp v0.6.0 h1:cq8CWG+3gNQ9ID0ZE8MoDHZxgdJmBZ1fFyt5xAfTRfA=
 github.com/evcc-io/openapi-mcp v0.6.0/go.mod h1:YyOx4zwr6xVUcchAETHERZ+75cZMIrdcjVIZFwBlE1Q=
-github.com/evcc-io/rct v0.1.2-0.20251121151844-04c32662cf6f h1:akSiKunHdPxxxfPGvNN+zlW6PdQ59PMXy1+VIW+2gyg=
-github.com/evcc-io/rct v0.1.2-0.20251121151844-04c32662cf6f/go.mod h1:n6MTBU36QOadGlxxiADu86VaT5l0eYdbmFBHF14AD/s=
 github.com/evcc-io/tesla-proxy-client v0.0.0-20240221194046-4168b3759701 h1:3JplY3KS6KMDVDNAU+3+KWmSWmoHIU34qwuIpW6SiHk=
 github.com/evcc-io/tesla-proxy-client v0.0.0-20240221194046-4168b3759701/go.mod h1:zWtAweBqXJTk3HSrPSecz3Q3a2hAUQ4vOE6paJfn03I=
 github.com/fatih/camelcase v1.0.0/go.mod h1:yN2Sb0lFhZJUdVvtELVWefmrXpuZESvPmqwoZc+/fpc=

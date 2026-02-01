@@ -34,7 +34,7 @@ func init() {
 	registry.AddCtx("rct", NewRCTFromConfig)
 }
 
-//go:generate go tool decorate -f decorateRCT -b *RCT -r api.Meter -t "api.MeterEnergy,TotalEnergy,func() (float64, error)" -t "api.Curtailer,Curtail,func(bool) error,Curtailed,func() (bool, error)" -t "api.Battery,Soc,func() (float64, error)" -t "api.BatterySocLimiter,GetSocLimits,func() (float64, float64)" -t "api.BatteryPowerLimiter,GetPowerLimits,func() (float64, float64)" -t "api.BatteryController,SetBatteryMode,func(api.BatteryMode) error" -t "api.BatteryCapacity,Capacity,func() float64"
+//go:generate go tool decorate -f decorateRCT -b *RCT -r api.Meter -t "api.PhaseCurrents,Currents,func() (float64, float64, float64, error)" -t "api.PhasePowers,Powers,func() (float64, float64, float64, error)" -t "api.PhaseVoltages,Voltages,func() (float64, float64, float64, error)" -t "api.MeterEnergy,TotalEnergy,func() (float64, error)" -t "api.Curtailer,Curtail,func(bool) error,Curtailed,func() (bool, error)" -t "api.Battery,Soc,func() (float64, error)" -t "api.BatterySocLimiter,GetSocLimits,func() (float64, float64)" -t "api.BatteryPowerLimiter,GetPowerLimits,func() (float64, float64)" -t "api.BatteryController,SetBatteryMode,func(api.BatteryMode) error" -t "api.BatteryCapacity,Capacity,func() float64"
 
 // NewRCTFromConfig creates an RCT from generic config
 func NewRCTFromConfig(ctx context.Context, other map[string]any) (api.Meter, error) {
@@ -98,16 +98,21 @@ func NewRCT(ctx context.Context, uri, usage string, batterySocLimits batterySocL
 		externalPower: externalPower,
 	}
 
-	// decorate api.MeterEnergy
-	var totalEnergy func() (float64, error)
-	if usage == "grid" {
-		totalEnergy = m.totalEnergy
-	}
+	var totalEnergy func() (float64, error)                // decorate api.MeterEnergy
+	var currents func() (float64, float64, float64, error) // decorate api.PhaseCurrents
+	var powers func() (float64, float64, float64, error)   // decorate api.PhasePowers
+	var voltages func() (float64, float64, float64, error) // decorate api.PhaseVoltages
 
 	// decorate api.Curtailer
 	var curtail func(bool) error
 	var curtailed func() (bool, error)
 	if usage == "pv" {
+		totalEnergy = m.totalEnergy
+		totalEnergy = m.totalEnergy
+		currents = m.currents
+		powers = m.powers
+		voltages = m.voltages
+
 		curtail = func(b bool) error {
 			var r float64
 			if !b {
@@ -226,7 +231,7 @@ func NewRCT(ctx context.Context, uri, usage string, batterySocLimits batterySocL
 		}
 	}
 
-	return decorateRCT(m, totalEnergy, curtail, curtailed, batterySoc, batterySocLimiter, batteryPowerLimiter, batteryMode, batteryCapacity), nil
+	return decorateRCT(m, currents, powers, voltages, totalEnergy, curtail, curtailed, batterySoc, batterySocLimiter, batteryPowerLimiter, batteryMode, batteryCapacity), nil
 }
 
 // CurrentPower implements the api.Meter interface
@@ -270,54 +275,100 @@ func (m *RCT) CurrentPower() (float64, error) {
 	}
 }
 
+// currents implements the api.MeterEnergy interface
+func (m *RCT) currents() (float64, float64, float64, error) {
+	var eg errgroup.Group
+	var l1, l2, l3 float64
+
+	eg.Go(func() error {
+		var err error
+		l1, err = m.queryFloat(rct.GSyncIDrEff0)
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		l2, err = m.queryFloat(rct.GSyncIDrEff1)
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		l3, err = m.queryFloat(rct.GSyncIDrEff2)
+		return err
+	})
+
+	err := eg.Wait()
+	return l1, l2, l3, err
+}
+
+// powers implements the api.PhasePowers interface
+func (m *RCT) powers() (float64, float64, float64, error) {
+	var eg errgroup.Group
+	var l1, l2, l3 float64
+
+	eg.Go(func() error {
+		var err error
+		l1, err = m.queryFloat(rct.GSyncPAcLp0)
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		l2, err = m.queryFloat(rct.GSyncPAcLp1)
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		l3, err = m.queryFloat(rct.GSyncPAcLp2)
+		return err
+	})
+
+	err := eg.Wait()
+	return l1, l2, l3, err
+}
+
+// voltages implements the api.PhaseVoltages interface
+func (m *RCT) voltages() (float64, float64, float64, error) {
+	var eg errgroup.Group
+	var l1, l2, l3 float64
+
+	eg.Go(func() error {
+		var err error
+		l1, err = m.queryFloat(rct.GSyncULRms0)
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		l2, err = m.queryFloat(rct.GSyncULRms1)
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		l3, err = m.queryFloat(rct.GSyncULRms2)
+		return err
+	})
+
+	err := eg.Wait()
+	return l1, l2, l3, err
+}
+
 // totalEnergy implements the api.MeterEnergy interface
 func (m *RCT) totalEnergy() (float64, error) {
-	switch m.usage {
-	case "grid":
-		res, err := m.queryFloat(rct.TotalEnergyGridWh)
-		return res / 1000, err
+	var eg errgroup.Group
+	var a, b float64
 
-	case "pv":
-		var eg errgroup.Group
-		var a, b float64
+	eg.Go(func() error {
+		var err error
+		a, err = m.queryFloat(rct.TotalEnergySolarGenAWh)
+		return err
+	})
 
-		eg.Go(func() error {
-			var err error
-			a, err = m.queryFloat(rct.TotalEnergySolarGenAWh)
-			return err
-		})
+	eg.Go(func() error {
+		var err error
+		b, err = m.queryFloat(rct.TotalEnergySolarGenBWh)
+		return err
+	})
 
-		eg.Go(func() error {
-			var err error
-			b, err = m.queryFloat(rct.TotalEnergySolarGenBWh)
-			return err
-		})
-
-		err := eg.Wait()
-		return (a + b) / 1000, err
-
-	case "battery":
-		var eg errgroup.Group
-		var in, out float64
-
-		eg.Go(func() error {
-			var err error
-			in, err = m.queryFloat(rct.TotalEnergyBattInWh)
-			return err
-		})
-
-		eg.Go(func() error {
-			var err error
-			out, err = m.queryFloat(rct.TotalEnergyBattOutWh)
-			return err
-		})
-
-		err := eg.Wait()
-		return (in - out) / 1000, err
-
-	default:
-		return 0, fmt.Errorf("invalid usage: %s", m.usage)
-	}
+	err := eg.Wait()
+	return (a + b) / 1000, err
 }
 
 func floatVal(f float64) []byte {

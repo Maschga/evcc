@@ -266,3 +266,5 @@ replace github.com/grid-x/modbus => github.com/evcc-io/modbus v0.0.0-20250501165
 replace github.com/lorenzodonini/ocpp-go => github.com/evcc-io/ocpp-go v0.0.0-20251212212612-b7f92ee0443b
 
 replace go.yaml.in/yaml/v4 => go.yaml.in/yaml/v4 v4.0.0-rc.3
+
+replace github.com/evcc-io/rct => github.com/Maschga/rct v0.1.2-0.20260201161311-75257487a034

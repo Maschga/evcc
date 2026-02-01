@@ -6,12 +6,83 @@ import (
 	"github.com/evcc-io/evcc/api"
 )
 
-func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func(bool) error, curtailer1 func() (bool, error), battery func() (float64, error), batterySocLimiter func() (float64, float64), batteryPowerLimiter func() (float64, float64), batteryController func(api.BatteryMode) error, batteryCapacity func() float64) api.Meter {
+func decorateRCT(base *RCT, phaseCurrents func() (float64, float64, float64, error), phasePowers func() (float64, float64, float64, error), phaseVoltages func() (float64, float64, float64, error), meterEnergy func() (float64, error), curtailer0 func(bool) error, curtailer1 func() (bool, error), battery func() (float64, error), batterySocLimiter func() (float64, float64), batteryPowerLimiter func() (float64, float64), batteryController func(api.BatteryMode) error, batteryCapacity func() float64) api.Meter {
 	switch {
-	case battery == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil:
+	case battery == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return base
 
-	case battery == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil:
+	case battery == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.MeterEnergy
@@ -22,7 +93,98 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil:
+	case battery == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Curtailer
@@ -34,7 +196,103 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil:
+	case battery == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Curtailer
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Curtailer
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Curtailer
@@ -50,7 +308,123 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil:
+	case battery == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -61,7 +435,98 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -76,7 +541,118 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -92,7 +668,123 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.Curtailer
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.Curtailer
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -112,7 +804,143 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -127,7 +955,118 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -146,7 +1085,138 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -166,7 +1236,143 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -190,7 +1396,163 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -205,7 +1567,118 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -224,7 +1697,138 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -244,7 +1848,143 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -268,7 +2008,163 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -287,7 +2183,138 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -310,7 +2337,158 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -334,7 +2512,163 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -362,7 +2696,183 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -377,7 +2887,118 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -396,7 +3017,138 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -416,7 +3168,143 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.Curtailer
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.Curtailer
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -440,7 +3328,163 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -459,7 +3503,138 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -482,7 +3657,158 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -506,7 +3832,163 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -534,7 +4016,183 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -553,7 +4211,138 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -576,7 +4365,158 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -600,7 +4540,163 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -628,7 +4724,183 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -651,7 +4923,158 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -678,7 +5101,178 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -706,7 +5300,183 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -738,7 +5508,203 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity == nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -753,7 +5719,118 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -772,7 +5849,138 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -792,7 +6000,143 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.Curtailer
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.Curtailer
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -816,7 +6160,163 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -835,7 +6335,138 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -858,7 +6489,158 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -882,7 +6664,163 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -910,7 +6848,183 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -929,7 +7043,138 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -952,7 +7197,158 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -976,7 +7372,163 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1004,7 +7556,183 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1027,7 +7755,158 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1054,7 +7933,178 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1082,7 +8132,183 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1114,7 +8340,203 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController == nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1133,7 +8555,138 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1156,7 +8709,158 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1180,7 +8884,163 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.Curtailer
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.Curtailer
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1208,7 +9068,183 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1231,7 +9267,158 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1258,7 +9445,178 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1286,7 +9644,183 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1318,7 +9852,203 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter == nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1341,7 +10071,158 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1368,7 +10249,178 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1396,7 +10448,183 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1428,7 +10656,203 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter == nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1455,7 +10879,178 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1486,7 +11081,198 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil:
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 == nil && curtailer1 == nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1518,7 +11304,203 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 		}
 
-	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil:
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy == nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages == nil:
 		return &struct {
 			*RCT
 			api.Battery
@@ -1551,6 +11533,222 @@ func decorateRCT(base *RCT, meterEnergy func() (float64, error), curtailer0 func
 			},
 			MeterEnergy: &decorateRCTMeterEnergyImpl{
 				meterEnergy: meterEnergy,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages == nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers == nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
+			},
+		}
+
+	case battery != nil && batteryCapacity != nil && batteryController != nil && batteryPowerLimiter != nil && batterySocLimiter != nil && curtailer0 != nil && curtailer1 != nil && meterEnergy != nil && phaseCurrents != nil && phasePowers != nil && phaseVoltages != nil:
+		return &struct {
+			*RCT
+			api.Battery
+			api.BatteryCapacity
+			api.BatteryController
+			api.BatteryPowerLimiter
+			api.BatterySocLimiter
+			api.Curtailer
+			api.MeterEnergy
+			api.PhaseCurrents
+			api.PhasePowers
+			api.PhaseVoltages
+		}{
+			RCT: base,
+			Battery: &decorateRCTBatteryImpl{
+				battery: battery,
+			},
+			BatteryCapacity: &decorateRCTBatteryCapacityImpl{
+				batteryCapacity: batteryCapacity,
+			},
+			BatteryController: &decorateRCTBatteryControllerImpl{
+				batteryController: batteryController,
+			},
+			BatteryPowerLimiter: &decorateRCTBatteryPowerLimiterImpl{
+				batteryPowerLimiter: batteryPowerLimiter,
+			},
+			BatterySocLimiter: &decorateRCTBatterySocLimiterImpl{
+				batterySocLimiter: batterySocLimiter,
+			},
+			Curtailer: &decorateRCTCurtailerImpl{
+				curtailer0: curtailer0,
+				curtailer1: curtailer1,
+			},
+			MeterEnergy: &decorateRCTMeterEnergyImpl{
+				meterEnergy: meterEnergy,
+			},
+			PhaseCurrents: &decorateRCTPhaseCurrentsImpl{
+				phaseCurrents: phaseCurrents,
+			},
+			PhasePowers: &decorateRCTPhasePowersImpl{
+				phasePowers: phasePowers,
+			},
+			PhaseVoltages: &decorateRCTPhaseVoltagesImpl{
+				phaseVoltages: phaseVoltages,
 			},
 		}
 	}
@@ -1617,4 +11815,28 @@ type decorateRCTMeterEnergyImpl struct {
 
 func (impl *decorateRCTMeterEnergyImpl) TotalEnergy() (float64, error) {
 	return impl.meterEnergy()
+}
+
+type decorateRCTPhaseCurrentsImpl struct {
+	phaseCurrents func() (float64, float64, float64, error)
+}
+
+func (impl *decorateRCTPhaseCurrentsImpl) Currents() (float64, float64, float64, error) {
+	return impl.phaseCurrents()
+}
+
+type decorateRCTPhasePowersImpl struct {
+	phasePowers func() (float64, float64, float64, error)
+}
+
+func (impl *decorateRCTPhasePowersImpl) Powers() (float64, float64, float64, error) {
+	return impl.phasePowers()
+}
+
+type decorateRCTPhaseVoltagesImpl struct {
+	phaseVoltages func() (float64, float64, float64, error)
+}
+
+func (impl *decorateRCTPhaseVoltagesImpl) Voltages() (float64, float64, float64, error) {
+	return impl.phaseVoltages()
 }
