@@ -108,7 +108,6 @@ func NewRCT(ctx context.Context, uri, usage string, batterySocLimits batterySocL
 	var curtailed func() (bool, error)
 	if usage == "pv" {
 		totalEnergy = m.totalEnergy
-		totalEnergy = m.totalEnergy
 		currents = m.currents
 		powers = m.powers
 		voltages = m.voltages
