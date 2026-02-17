@@ -961,7 +961,7 @@
     },
     "loadpointSettings": {
       "batteryBoost": {
-        "description": "Ev bataryasından hızlı doldur.",
+        "description": "Ev bataryasından {limit} seviyesine düşene kadar hızlı şarj.",
         "label": "'Batarya Takviyesi”",
         "mode": "Sadece GES ve Asg.+GES modunda kullanılabilir.",
         "once": "Bu doldurma oturumu için takviye etkin."
@@ -1116,7 +1116,6 @@
   "passwordModal": {
     "description": "Yapılandırma ayarlarını korumak için bir şifre belirle. Ana görünüme erişim oturum açmadan da mümkün.",
     "empty": "Şifre boş olamaz",
-    "error": "Hata: ",
     "labelCurrent": "Mevcut şifre",
     "labelNew": "Yeni şifre",
     "labelRepeat": "Yeni şifreyi tekrarla",

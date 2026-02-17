@@ -953,7 +953,7 @@
     },
     "loadpointSettings": {
       "batteryBoost": {
-        "description": "Hurtiglading fra hjemmebatteriet.",
+        "description": "Hurtiglading fra hjemmebatteriet til det er utladet til {limit}.",
         "label": "Batteriboost",
         "mode": "Kun tilgjengelig i solenergi- og min+solenergi-modus.",
         "once": "Boost aktiv for denne ladingsøkten."
@@ -1108,7 +1108,6 @@
   "passwordModal": {
     "description": "Angi et passord for å beskytte konfigurasjonsinnstillingene. Det er fortsatt mulig å bruke hovedskjermen uten å logge inn.",
     "empty": "Passordet må ikke være tomt",
-    "error": "Feil: ",
     "labelCurrent": "Gjeldende passord",
     "labelNew": "Nytt passord",
     "labelRepeat": "Gjenta passord",
