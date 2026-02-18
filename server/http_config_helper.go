@@ -232,6 +232,8 @@ func hasFeature(instance any, f api.Feature) bool {
 // TODO refactor together with dump
 func testInstance(instance any) map[string]testResult {
 	res := make(map[string]testResult)
+	var mu sync.Mutex
+	var wg sync.WaitGroup
 
 	makeResult := func(key string, val any, err error) {
 		tr := testResult{Value: val}
@@ -241,26 +243,34 @@ func testInstance(instance any) map[string]testResult {
 			}
 			tr.Error = err.Error()
 		}
+		mu.Lock()
 		res[key] = tr
+		mu.Unlock()
 	}
 
 	if dev, ok := instance.(api.Meter); ok {
-		val, err := dev.CurrentPower()
-		makeResult("power", val, err)
+		wg.Go(func() {
+			val, err := dev.CurrentPower()
+			makeResult("power", val, err)
+		})
 	}
 
 	if dev, ok := instance.(api.MeterEnergy); ok {
-		val, err := dev.TotalEnergy()
-		makeResult("energy", val, err)
+		wg.Go(func() {
+			val, err := dev.TotalEnergy()
+			makeResult("energy", val, err)
+		})
 	}
 
 	if dev, ok := instance.(api.Battery); ok {
-		val, err := dev.Soc()
-		key := "soc"
-		if hasFeature(instance, api.Heating) {
-			key = "temp"
-		}
-		makeResult(key, val, err)
+		wg.Go(func() {
+			val, err := dev.Soc()
+			key := "soc"
+			if hasFeature(instance, api.Heating) {
+				key = "temp"
+			}
+			makeResult(key, val, err)
+		})
 	}
 
 	if _, ok := instance.(api.BatteryController); ok {
@@ -268,43 +278,59 @@ func testInstance(instance any) map[string]testResult {
 	}
 
 	if dev, ok := instance.(api.VehicleOdometer); ok {
-		val, err := dev.Odometer()
-		makeResult("odometer", val, err)
+		wg.Go(func() {
+			val, err := dev.Odometer()
+			makeResult("odometer", val, err)
+		})
 	}
 
 	if dev, ok := instance.(api.BatteryCapacity); ok {
-		val := dev.Capacity()
-		makeResult("capacity", val, nil)
+		wg.Go(func() {
+			val := dev.Capacity()
+			makeResult("capacity", val, nil)
+		})
 	}
 
 	if dev, ok := instance.(api.PhaseCurrents); ok {
-		i1, i2, i3, err := dev.Currents()
-		makeResult("phaseCurrents", []float64{i1, i2, i3}, err)
+		wg.Go(func() {
+			i1, i2, i3, err := dev.Currents()
+			makeResult("phaseCurrents", []float64{i1, i2, i3}, err)
+		})
 	}
 
 	if dev, ok := instance.(api.PhaseVoltages); ok {
-		u1, u2, u3, err := dev.Voltages()
-		makeResult("phaseVoltages", []float64{u1, u2, u3}, err)
+		wg.Go(func() {
+			u1, u2, u3, err := dev.Voltages()
+			makeResult("phaseVoltages", []float64{u1, u2, u3}, err)
+		})
 	}
 
 	if dev, ok := instance.(api.PhasePowers); ok {
-		p1, p2, p3, err := dev.Powers()
-		makeResult("phasePowers", []float64{p1, p2, p3}, err)
+		wg.Go(func() {
+			p1, p2, p3, err := dev.Powers()
+			makeResult("phasePowers", []float64{p1, p2, p3}, err)
+		})
 	}
 
 	if dev, ok := instance.(api.ChargeState); ok {
-		val, err := dev.Status()
-		makeResult("chargeStatus", val, err)
+		wg.Go(func() {
+			val, err := dev.Status()
+			makeResult("chargeStatus", val, err)
+		})
 	}
 
 	if dev, ok := instance.(api.Charger); ok {
-		val, err := dev.Enabled()
-		makeResult("enabled", val, err)
+		wg.Go(func() {
+			val, err := dev.Enabled()
+			makeResult("enabled", val, err)
+		})
 	}
 
 	if dev, ok := instance.(api.ChargeRater); ok {
-		val, err := dev.ChargedEnergy()
-		makeResult("chargedEnergy", val, err)
+		wg.Go(func() {
+			val, err := dev.ChargedEnergy()
+			makeResult("chargedEnergy", val, err)
+		})
 	}
 
 	if _, ok := instance.(api.PhaseSwitcher); ok {
@@ -328,29 +354,38 @@ func testInstance(instance any) map[string]testResult {
 	}
 
 	if dev, ok := instance.(api.VehicleRange); ok {
-		val, err := dev.Range()
-		makeResult("range", val, err)
+		wg.Go(func() {
+			val, err := dev.Range()
+			makeResult("range", val, err)
+		})
 	}
 
 	if dev, ok := instance.(api.SocLimiter); ok {
-		val, err := dev.GetLimitSoc()
-		key := "vehicleLimitSoc"
-		if hasFeature(instance, api.Heating) {
-			key = "heaterTempLimit"
-		}
-		makeResult(key, val, err)
+		wg.Go(func() {
+			val, err := dev.GetLimitSoc()
+			key := "vehicleLimitSoc"
+			if hasFeature(instance, api.Heating) {
+				key = "heaterTempLimit"
+			}
+			makeResult(key, val, err)
+		})
 	}
 
 	if dev, ok := instance.(api.Dimmer); ok {
-		val, err := dev.Dimmed()
-		makeResult("dimmed", val, err)
+		wg.Go(func() {
+			val, err := dev.Dimmed()
+			makeResult("dimmed", val, err)
+		})
 	}
 
 	if dev, ok := instance.(api.Identifier); ok {
-		val, err := dev.Identify()
-		makeResult("identifier", val, err)
+		wg.Go(func() {
+			val, err := dev.Identify()
+			makeResult("identifier", val, err)
+		})
 	}
 
+	wg.Wait()
 	return res
 }
 

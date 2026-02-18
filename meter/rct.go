@@ -103,14 +103,18 @@ func NewRCT(ctx context.Context, uri, usage string, batterySocLimits batterySocL
 	var powers func() (float64, float64, float64, error)   // decorate api.PhasePowers
 	var voltages func() (float64, float64, float64, error) // decorate api.PhaseVoltages
 
+	if usage == "grid" || usage == "pv" {
+		totalEnergy = m.totalEnergy
+		powers = m.powers
+		voltages = m.voltages
+	}
+
 	// decorate api.Curtailer
 	var curtail func(bool) error
 	var curtailed func() (bool, error)
+
 	if usage == "pv" {
-		totalEnergy = m.totalEnergy
 		currents = m.currents
-		powers = m.powers
-		voltages = m.voltages
 
 		curtail = func(b bool) error {
 			var r float64
@@ -276,104 +280,83 @@ func (m *RCT) CurrentPower() (float64, error) {
 
 // currents implements the api.MeterEnergy interface
 func (m *RCT) currents() (float64, float64, float64, error) {
-	var eg errgroup.Group
-	var l1, l2, l3 float64
-
-	eg.Go(func() error {
-		var err error
-		l1, err = m.queryFloat(rct.GSyncIDrEff0)
-		return err
-	})
-	eg.Go(func() error {
-		var err error
-		l2, err = m.queryFloat(rct.GSyncIDrEff1)
-		return err
-	})
-	eg.Go(func() error {
-		var err error
-		l3, err = m.queryFloat(rct.GSyncIDrEff2)
-		return err
-	})
-
-	err := eg.Wait()
-	return l1, l2, l3, err
+	switch m.usage {
+	case "pv":
+		return m.queryPhases([]rct.Identifier{rct.GSyncIDrEff0, rct.GSyncIDrEff1, rct.GSyncIDrEff2})
+	default:
+		return 0, 0, 0, fmt.Errorf("invalid usage: %s", m.usage)
+	}
 }
 
 // powers implements the api.PhasePowers interface
 func (m *RCT) powers() (float64, float64, float64, error) {
-	var eg errgroup.Group
-	var l1, l2, l3 float64
-
-	eg.Go(func() error {
-		var err error
-		l1, err = m.queryFloat(rct.GSyncPAcLp0)
-		return err
-	})
-	eg.Go(func() error {
-		var err error
-		l2, err = m.queryFloat(rct.GSyncPAcLp1)
-		return err
-	})
-	eg.Go(func() error {
-		var err error
-		l3, err = m.queryFloat(rct.GSyncPAcLp2)
-		return err
-	})
-
-	err := eg.Wait()
-	return l1, l2, l3, err
+	switch m.usage {
+	case "pv":
+		return m.queryPhases([]rct.Identifier{rct.GSyncPAcLp0, rct.GSyncPAcLp1, rct.GSyncPAcLp2})
+	case "grid":
+		return m.queryPhases([]rct.Identifier{rct.GSyncPAcSc0, rct.GSyncPAcSc1, rct.GSyncPAcSc2})
+	default:
+		return 0, 0, 0, fmt.Errorf("invalid usage: %s", m.usage)
+	}
 }
 
 // voltages implements the api.PhaseVoltages interface
 func (m *RCT) voltages() (float64, float64, float64, error) {
-	var eg errgroup.Group
-	var l1, l2, l3 float64
-
-	eg.Go(func() error {
-		var err error
-		l1, err = m.queryFloat(rct.GSyncULRms0)
-		return err
-	})
-	eg.Go(func() error {
-		var err error
-		l2, err = m.queryFloat(rct.GSyncULRms1)
-		return err
-	})
-	eg.Go(func() error {
-		var err error
-		l3, err = m.queryFloat(rct.GSyncULRms2)
-		return err
-	})
-
-	err := eg.Wait()
-	return l1, l2, l3, err
+	switch m.usage {
+	case "pv":
+		return m.queryPhases([]rct.Identifier{rct.GSyncULRms0, rct.GSyncULRms1, rct.GSyncULRms2})
+	case "grid":
+		return m.queryPhases([]rct.Identifier{rct.Rb485ULGrid0, rct.Rb485ULGrid1, rct.Rb485ULGrid2})
+	default:
+		return 0, 0, 0, fmt.Errorf("invalid usage: %s", m.usage)
+	}
 }
 
 // totalEnergy implements the api.MeterEnergy interface
 func (m *RCT) totalEnergy() (float64, error) {
-	var eg errgroup.Group
-	var a, b float64
+	var e float64
+	var err error
 
-	eg.Go(func() error {
-		var err error
-		a, err = m.queryFloat(rct.TotalEnergySolarGenAWh)
-		return err
-	})
+	switch m.usage {
+	case "pv":
+		e, err = m.queryFloat(rct.TotalEnergyWh)
+	case "grid":
+		e, err = m.queryFloat(rct.TotalEnergyGridLoadWh)
+	default:
+		return 0, fmt.Errorf("invalid usage: %s", m.usage)
+	}
 
-	eg.Go(func() error {
-		var err error
-		b, err = m.queryFloat(rct.TotalEnergySolarGenBWh)
-		return err
-	})
-
-	err := eg.Wait()
-	return (a + b) / 1000, err
+	return e / 1000, err
 }
 
 func floatVal(f float64) []byte {
 	data := make([]byte, 4)
 	binary.BigEndian.PutUint32(data, math.Float32bits(float32(f)))
 	return data
+}
+
+func (m *RCT) queryPhases(identifiers []rct.Identifier) (float64, float64, float64, error) {
+	var eg errgroup.Group
+	var l1, l2, l3 float64
+
+	eg.Go(func() error {
+		var err error
+		l1, err = m.queryFloat(identifiers[0])
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		l2, err = m.queryFloat(identifiers[1])
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		l3, err = m.queryFloat(identifiers[2])
+		return err
+	})
+
+	err := eg.Wait()
+	return l1, l2, l3, err
 }
 
 func queryRCT[T any](id rct.Identifier, fun func(id rct.Identifier) (T, error)) (T, error) {
