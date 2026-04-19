@@ -1,63 +1,75 @@
 <template>
-	<YamlModal
+	<JsonModal
+		id="circuitsModal"
 		name="circuits"
 		:title="$t('config.circuits.title')"
 		:description="$t('config.circuits.description')"
 		docs="/docs/features/loadmanagement"
-		:defaultYaml="defaultYaml"
-		removeKey="circuits"
 		endpoint="/config/circuits"
+		state-key="circuits.config"
+		data-testid="circuits-modal"
+		disable-remove
 		@changed="$emit('changed')"
 	>
-		<template #extra>
-			<p class="my-2 small">
-				{{ $t("config.circuits.usableMeters") }}:
-				<code v-for="meter in usableMeters" :key="meter.name" class="ms-1 meter">
-					{{ meter.name }}<span v-if="meter.title" class="ms-1">({{ meter.title }})</span>
-				</code>
-			</p>
+		<template #default="{ values }: { values: Circuits }">
+			<div class="my-4">
+				<CircuitTags :nodes="circuitsNodes(values)">
+					<template #default="{ node, nodeTitle }">
+						<div>
+							<DeviceRefBox
+								:title="nodeTitle"
+								:compact="true"
+								@edit="openCircuit(node.name)"
+							/>
+						</div>
+					</template>
+				</CircuitTags>
+			</div>
+			<button
+				type="button"
+				class="d-flex btn btn-sm btn-outline-secondary border-0 align-items-center gap-2 evcc-gray"
+				tabindex="0"
+				@click="openCircuit()"
+			>
+				<shopicon-regular-plus size="s" class="flex-shrink-0"></shopicon-regular-plus>
+				{{ $t("config.messaging.addMessenger") }}
+			</button>
 		</template>
-	</YamlModal>
+	</JsonModal>
 </template>
 
 <script lang="ts">
-import YamlModal from "./YamlModal.vue";
-import defaultYaml from "./defaultYaml/circuits.yaml?raw";
-import type { ConfigMeter } from "@/types/evcc";
-import type { PropType } from "vue";
+import { type Circuits } from "@/types/evcc";
+import "@h2d2/shopicons/es/regular/plus";
+import JsonModal from "./JsonModal.vue";
+import { openModal } from "@/configModal";
+import CircuitTags from "./CircuitTags.vue";
+import { circuitTree } from "@/utils/circuits";
+import DeviceCardEditIcon from "./DeviceCardEditIcon.vue";
+import DeviceRefBox from "./DeviceRefBox.vue";
 
 export default {
 	name: "CircuitsModal",
-	components: { YamlModal },
-	props: {
-		gridMeter: { type: Object as PropType<ConfigMeter>, default: null },
-		extMeters: { type: Array as PropType<ConfigMeter[]>, default: () => [] },
+	components: {
+		JsonModal,
+		DeviceCardEditIcon,
+		CircuitTags,
+		DeviceRefBox,
 	},
 	emits: ["changed"],
-	data() {
-		return { defaultYaml: defaultYaml.trim() };
-	},
 	computed: {
-		usableMeters() {
-			const result = [];
-			if (this.gridMeter) {
-				result.push({ name: this.gridMeter.name, title: this.$t("config.grid.title") });
-			}
-			if (this.extMeters) {
-				result.push(
-					...this.extMeters.map((m) => ({
-						name: m.name,
-						title: m.deviceTitle || m.deviceProduct || m.config["template"] || m.type,
-					}))
-				);
-			}
-			return result;
+		circuitsNodes() {
+			return (circuits: Circuits) => {
+				const tree = circuitTree(circuits);
+				return tree ? [tree] : [];
+			};
+		},
+	},
+	methods: {
+		async openCircuit(name?: string) {
+			const id = name?.split("db:")[1];
+			await openModal("circuit", { id: id ? parseInt(id) : undefined });
 		},
 	},
 };
 </script>
-<style scoped>
-.meter:not(:last-child)::after {
-	content: ",";
-}
-</style>

@@ -284,7 +284,7 @@
 						:error="hasClassError('circuit')"
 						:unconfigured="!circuitsRoot"
 						data-testid="circuits"
-						@edit="openModal('circuits')"
+						@edit="openCircuitsModal"
 					>
 						<template #icon><CircuitsIcon /></template>
 						<template #tags>
@@ -292,7 +292,12 @@
 								v-if="!circuitsRoot"
 								:tags="{ configured: { value: false } }"
 							/>
-							<CircuitTags v-else :nodes="[circuitsRoot]" />
+							<CircuitTags v-else :nodes="[circuitsRoot]">
+								<template #default="{ nodeTitle, circuitTags }">
+									<p class="my-2 fw-bold">{{ nodeTitle }}</p>
+									<DeviceTags :tags="circuitTags" />
+								</template>
+							</CircuitTags>
 						</template>
 					</DeviceCard>
 					<DeviceCard
@@ -433,7 +438,13 @@
 				<RemoteModal :remote="remote" :is-sponsor="isSponsor" />
 				<TitleModal @changed="loadDirty" />
 				<ModbusProxyModal :is-sponsor="isSponsor" @changed="loadDirty" />
-				<CircuitsModal :gridMeter="gridMeter" :extMeters="extMeters" @changed="loadDirty" />
+				<CircuitsLegacyModal
+					:gridMeter="gridMeter"
+					:extMeters="extMeters"
+					@changed="loadDirty"
+				/>
+				<CircuitsModal @changed="loadDirty" />
+				<CircuitModal @changed="circuitChanged" />
 				<EebusModal
 					:status="eebus?.status"
 					:yamlSource="eebus?.yamlSource"
@@ -458,6 +469,7 @@ import api from "../api";
 import ChargerModal from "../components/Config/ChargerModal.vue";
 import CircuitsIcon from "../components/MaterialIcon/Circuits.vue";
 import CircuitsModal from "../components/Config/CircuitsModal.vue";
+import CircuitsLegacyModal from "../components/Config/CircuitsLegacyModal.vue";
 import CircuitTags from "../components/Config/CircuitTags.vue";
 import collector from "../mixins/collector";
 import ControlModal from "../components/Config/ControlModal.vue";
@@ -538,12 +550,15 @@ import WelcomeBanner from "../components/Config/WelcomeBanner.vue";
 import AuthSuccessBanner from "../components/Config/AuthSuccessBanner.vue";
 import PasswordModal from "../components/Auth/PasswordModal.vue";
 import AuthProvidersCard from "../components/Config/AuthProvidersCard.vue";
+import CircuitModal from "@/components/Config/CircuitModal.vue";
 
 export default defineComponent({
 	name: "Config",
 	components: {
 		NewDeviceButton,
 		BackupRestoreModal,
+		CircuitsLegacyModal,
+		CircuitModal,
 		ChargerModal,
 		CircuitsIcon,
 		CircuitsModal,
@@ -775,7 +790,7 @@ export default defineComponent({
 			if (["relay", "eebus"].includes(type)) {
 				result.hemsType = { value: type };
 			}
-			const gc = store.state?.circuits?.[GRID_CONTROL];
+			const gc = store.state?.circuits?.config?.[GRID_CONTROL];
 			if (gc) {
 				const value = gc.maxPower || null;
 				result.hemsActiveLimit = { value };
@@ -865,7 +880,7 @@ export default defineComponent({
 			};
 		},
 		circuitsRoot() {
-			return circuitTree(store.state?.circuits || {});
+			return circuitTree(store.state?.circuits?.config || {});
 		},
 		tariffsYamlSource() {
 			return store.state?.tariffs?.yamlSource;
@@ -1073,8 +1088,16 @@ export default defineComponent({
 			const modalName = this.messagingYamlSource === "db" ? "messaginglegacy" : "messaging";
 			openModal(modalName);
 		},
+		openCircuitsModal() {
+			const modalName = this.messagingYamlSource === "db" ? "circuitslegacy" : "circuits";
+			openModal(modalName);
+		},
 		async messengerChanged() {
 			this.loadMessengers();
+			this.loadDirty();
+		},
+		async circuitChanged() {
+			this.loadCircuits();
 			this.loadDirty();
 		},
 		siteChanged() {

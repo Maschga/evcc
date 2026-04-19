@@ -94,12 +94,12 @@ import type {
 	CURRENCY,
 	Forecast,
 	Notification,
-	Circuit,
 	SMART_COST_TYPE,
 	Sponsor,
 	FatalError,
 	EvOpt,
 	BATTERY_MODE,
+	Circuits,
 } from "@/types/evcc";
 import store from "@/store";
 import type { Grid } from "./types";
@@ -163,7 +163,7 @@ export default defineComponent({
 		smartFeedInPriorityAvailable: Boolean,
 		fatal: { type: Array as PropType<FatalError[]>, default: () => [] },
 		forecast: Object as PropType<Forecast>,
-		circuits: Object as PropType<Record<string, Circuit>>,
+		circuits: Object as PropType<Circuits>,
 		telemetry: Boolean,
 		experimental: Boolean,
 		evopt: { type: Object as PropType<EvOpt> },

@@ -13,6 +13,7 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 	"github.com/evcc-io/evcc/api"
+	"github.com/evcc-io/evcc/api/globalconfig"
 	"github.com/evcc-io/evcc/cmd/shutdown"
 	"github.com/evcc-io/evcc/core/circuit"
 	"github.com/evcc-io/evcc/core/coordinator"
@@ -895,7 +896,7 @@ func (site *Site) updateLoadpoints(rates api.Rates) float64 {
 	return sum
 }
 
-func (site *Site) update(lp updater) {
+func (site *Site) update(lp updater, yamlSourceCircuits globalconfig.YamlSource) {
 	site.log.DEBUG.Println("----")
 
 	// smart cost and battery mode handling
@@ -918,7 +919,7 @@ func (site *Site) update(lp updater) {
 			site.log.ERROR.Println(err)
 		}
 
-		site.publishCircuits()
+		site.publishCircuits(yamlSourceCircuits)
 
 		var wg sync.WaitGroup
 
@@ -1100,7 +1101,7 @@ func (site *Site) loopLoadpoints(next chan<- updater) {
 
 // Run is the main control loop. It reacts to trigger events by
 // updating measurements and executing control logic.
-func (site *Site) Run(stopC chan struct{}, interval time.Duration) {
+func (site *Site) Run(stopC chan struct{}, interval time.Duration,yamlSourceCircuits globalconfig.YamlSource) {
 	if max := 30 * time.Second; interval < max {
 		site.log.INFO.Printf("interval <%.0fs can lead to unexpected behavior, see https://docs.evcc.io/docs/reference/configuration/interval", max.Seconds())
 	}
@@ -1110,14 +1111,14 @@ func (site *Site) Run(stopC chan struct{}, interval time.Duration) {
 		go site.loopLoadpoints(loadpointChan)
 	}
 
-	site.update(<-loadpointChan) // start immediately
+	site.update(<-loadpointChan, yamlSourceCircuits) // start immediately
 
 	for tick := time.Tick(interval); ; {
 		select {
 		case <-tick:
-			site.update(<-loadpointChan)
+			site.update(<-loadpointChan, yamlSourceCircuits)
 		case lp := <-site.lpUpdateChan:
-			site.update(lp)
+			site.update(lp, yamlSourceCircuits)
 		case <-stopC:
 			return
 		}

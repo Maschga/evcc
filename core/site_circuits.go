@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/evcc-io/evcc/api"
+	"github.com/evcc-io/evcc/api/globalconfig"
 	"github.com/evcc-io/evcc/core/keys"
 	"github.com/evcc-io/evcc/util/config"
 	"github.com/samber/lo"
@@ -24,7 +25,7 @@ type circuitStruct struct {
 }
 
 // publishCircuits returns a list of circuit titles
-func (site *Site) publishCircuits() {
+func (site *Site) publishCircuits(yamlSourceCircuits globalconfig.YamlSource) {
 	cc := config.Circuits().Devices()
 	res := make(map[string]circuitStruct, len(cc))
 
@@ -55,7 +56,7 @@ func (site *Site) publishCircuits() {
 		res[c.Config().Name] = data
 	}
 
-	site.publish(keys.Circuits, res)
+	site.publish(keys.Circuits, globalconfig.ConfigStatus{Config: res, YamlSource: yamlSourceCircuits})
 }
 
 func (site *Site) dimMeters(dim bool) error {

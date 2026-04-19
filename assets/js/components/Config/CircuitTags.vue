@@ -2,10 +2,13 @@
 	<template v-for="(node, idx) in nodes" :key="node.name">
 		<hr v-if="idx > 0 || depth > 0" />
 		<div :style="style">
-			<p class="my-2 fw-bold">{{ nodeTitle(node) }}</p>
-			<DeviceTags :tags="circuitTags(node)" />
+			<slot :node="node" :nodeTitle="nodeTitle(node)" :circuitTags="circuitTags(node)" />
 		</div>
-		<CircuitTags v-if="node.children?.length" :nodes="node.children" :depth="depth + 1" />
+		<CircuitTags v-if="node.children?.length" :nodes="node.children" :depth="depth + 1">
+			<template #default="{ node, nodeTitle, circuitTags }">
+				<slot :node="node" :nodeTitle="nodeTitle" :circuitTags="circuitTags" />
+			</template>
+		</CircuitTags>
 	</template>
 </template>
 

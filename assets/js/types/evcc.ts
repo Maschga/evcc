@@ -98,7 +98,7 @@ export interface State {
   messaging?: ConfigStatus<unknown, unknown>;
   messagingEvents?: MessagingEvents;
   interval?: number;
-  circuits?: Record<string, Circuit>;
+  circuits?: ConfigStatus<Circuits, unknown>;
   bufferSoc?: number;
   prioritySoc?: number;
   bufferStartSoc?: number;
@@ -547,6 +547,8 @@ export interface MessagingEvent {
   disabled: boolean;
 }
 
+export type Circuits = Record<string, Circuit>;
+
 export interface ModbusProxySettings {
   uri?: string;
   rtu?: boolean;
@@ -647,7 +649,7 @@ export interface SelectOption<T> {
   disabled?: boolean;
 }
 
-export type DeviceType = "charger" | "meter" | "vehicle" | "loadpoint" | "messenger" | "tariff";
+export type DeviceType = "charger" | "meter" | "vehicle" | "loadpoint" | "messenger" | "tariff" | "circuit";
 export type MeterType = "grid" | "pv" | "battery" | "charge" | "aux" | "ext";
 export type MeterTemplateUsage = "grid" | "pv" | "battery" | "charge" | "aux";
 export type TariffType = "grid" | "feedIn" | "co2" | "planner" | "solar";

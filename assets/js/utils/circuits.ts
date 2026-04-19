@@ -1,4 +1,4 @@
-import type { Circuit } from "../types/evcc";
+import type { Circuit, Circuits } from "../types/evcc";
 
 export interface CircuitNode extends Circuit {
   name: string;
@@ -7,7 +7,7 @@ export interface CircuitNode extends Circuit {
 
 // circuitTree builds a tree from published circuit data.
 // Returns the root node or null if empty.
-export function circuitTree(circuits: Record<string, Circuit>): CircuitNode | null {
+export function circuitTree(circuits: Circuits): CircuitNode | null {
   const nodes = new Map<string, CircuitNode>();
   for (const [name, circuit] of Object.entries(circuits)) {
     nodes.set(name, { ...circuit, name });

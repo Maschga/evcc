@@ -7,14 +7,14 @@
 
 <script lang="ts">
 import { defineComponent, type PropType } from "vue";
-import { type Circuit, GRID_CONTROL } from "@/types/evcc";
+import { type Circuits, GRID_CONTROL } from "@/types/evcc";
 import formatter from "@/mixins/formatter";
 
 export default defineComponent({
 	name: "HemsWarning",
 	mixins: [formatter],
 	props: {
-		circuits: { type: Object as PropType<Record<string, Circuit>> },
+		circuits: { type: Object as PropType<Circuits> },
 	},
 	computed: {
 		lpcLimit(): number | null {
