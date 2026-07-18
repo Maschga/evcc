@@ -148,7 +148,7 @@ export default defineComponent({
 		multiplePlans(): boolean {
 			return this.repeatingPlans.length !== 0;
 		},
-		chargingPlanWarningsProps(): any {
+		chargingPlanWarningsProps() {
 			return this.collectProps(Warnings);
 		},
 		chargingPlanPreviewProps(): any {

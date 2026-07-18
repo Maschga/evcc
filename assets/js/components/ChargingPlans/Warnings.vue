@@ -28,7 +28,7 @@ export default defineComponent({
 	name: "ChargingPlanWarnings",
 	mixins: [formatter],
 	props: {
-		id: [String, Number],
+		id: { type: [String, Number], required: true },
 		effectiveLimitSoc: Number,
 		effectivePlanTime: String,
 		effectivePlanSoc: Number,
