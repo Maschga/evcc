@@ -32,7 +32,7 @@ import {
 } from "chart.js";
 import { Chart } from "vue-chartjs";
 import type { EvoptData } from "./TimeSeriesDataTable.vue";
-import type { CURRENCY, BatteryDetail, DeviceColors } from "@/types/evcc";
+import type { BatteryDetail, DeviceColors } from "@/types/evcc";
 import formatter from "@/mixins/formatter";
 import colors from "@/colors";
 import LegendList from "../Sessions/LegendList.vue";
@@ -70,10 +70,6 @@ export default defineComponent({
 		timestamp: {
 			type: String,
 			default: "",
-		},
-		currency: {
-			type: String as PropType<CURRENCY>,
-			required: true,
 		},
 		batteryColors: {
 			type: Array as PropType<string[]>,

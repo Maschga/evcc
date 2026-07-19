@@ -14,8 +14,5 @@ import { defineComponent } from "vue";
 
 export default defineComponent({
 	name: "LoadpointSettingsButton",
-	props: {
-		id: [String, Number],
-	},
 });
 </script>

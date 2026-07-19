@@ -131,7 +131,6 @@ import type {
 	LoadpointSuggestion,
 	ComponentProps,
 } from "@/types/evcc";
-import type { PlanStrategy } from "@/components/ChargingPlans/types";
 
 export default defineComponent({
 	name: "Loadpoint",
@@ -147,7 +146,6 @@ export default defineComponent({
 	mixins: [formatter],
 	props: {
 		id: { type: String, required: true },
-		single: Boolean,
 
 		// main
 		title: String,
@@ -188,11 +186,9 @@ export default defineComponent({
 		// charging: Boolean,
 		enabled: Boolean,
 		vehicleDetectionActive: Boolean,
-		vehicleRange: Number,
 		vehicleSoc: { type: Number, default: 0 },
 		minSocNotReached: Boolean,
 		vehicleName: String,
-		vehicleIcon: String,
 		vehicleLimitSoc: Number,
 		vehicles: Array as PropType<Vehicle[]>,
 		planActive: Boolean,
@@ -200,13 +196,8 @@ export default defineComponent({
 		planProjectedEnd: String as PropType<string | null>,
 		planOverrun: { type: Number, default: 0 },
 		planEnergy: Number,
-		planTime: String as PropType<string | null>,
 		effectivePlanTime: String as PropType<string | null>,
 		effectivePlanSoc: Number,
-		effectivePlanStrategy: Object as PropType<PlanStrategy>,
-		vehicleProviderLoggedIn: Boolean,
-		vehicleProviderLoginPath: String,
-		vehicleProviderLogoutPath: String,
 
 		// details
 		vehicleClimaterActive: Boolean as PropType<boolean | null>,
@@ -219,16 +210,11 @@ export default defineComponent({
 		chargeRemainingDuration: { type: Number, default: 0 },
 
 		// other information
-		phasesConfigured: Number,
 		phasesActive: Number,
-		chargerPhases1p3p: Boolean,
-		chargerSinglePhase: Boolean,
 		minCurrent: Number,
 		maxCurrent: Number,
 		offeredCurrent: Number,
-		connectedDuration: Number,
 		chargeCurrents: Array,
-		chargeRemainingEnergy: Number,
 		phaseAction: String as PropType<PHASE_ACTION>,
 		phaseRemaining: { type: Number, default: 0 },
 		pvRemaining: { type: Number, default: 0 },
@@ -252,10 +238,6 @@ export default defineComponent({
 		gridConfigured: Boolean,
 		pvConfigured: Boolean,
 		forecast: Object as PropType<Forecast>,
-		lastSmartCostLimit: Number,
-		lastSmartFeedInPriorityLimit: Number,
-		vehicleKnown: Boolean,
-		vehicleHasSoc: Boolean,
 		vehicleNotReachable: Boolean,
 		socBasedCharging: Boolean,
 		socBasedPlanning: Boolean,

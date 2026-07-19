@@ -85,7 +85,6 @@ export default defineComponent({
 		id: { type: String, required: true },
 		included: { type: Boolean, required: true },
 		content: { type: String, default: "" },
-		description: { type: String, default: "" },
 		helpType: { type: String as PropType<HelpType> },
 	},
 	emits: ["update:included", "update:content"],

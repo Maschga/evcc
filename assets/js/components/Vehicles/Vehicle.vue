@@ -93,14 +93,12 @@ import { defineComponent, type PropType } from "vue";
 import {
 	CHARGE_MODE,
 	type BATTERY_MODE,
-	type Forecast,
 	type VehicleStatus,
 	type Vehicle,
 	type LoadpointUi,
 	type LoadpointSuggestion,
 	type ComponentProps,
 } from "@/types/evcc";
-import type { PlanStrategy } from "@/components/ChargingPlans/types";
 import BatteryBoostButton from "../Loadpoints/BatteryBoostButton.vue";
 import type ChargingPlanModal from "../ChargingPlans/ChargingPlanModal.vue";
 

@@ -50,7 +50,7 @@ import BatteryIcon from "../Energyflow/BatteryIcon.vue";
 import Item from "./Item.vue";
 import MoreItem from "./MoreItem.vue";
 import { defineComponent, type PropType } from "vue";
-import type { FatalError, Forecast, Sponsor, EvOpt, AuthProviders, Battery } from "@/types/evcc";
+import type { FatalError, Sponsor, EvOpt, AuthProviders, Battery } from "@/types/evcc";
 
 export default defineComponent({
 	name: "BottomTabBar",

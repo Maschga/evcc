@@ -75,7 +75,6 @@ import formatter from "@/mixins/formatter";
 import WelcomeIcons from "./WelcomeIcons.vue";
 import { defineComponent, type PropType } from "vue";
 import type {
-	AuthProviders,
 	Battery,
 	Meter,
 	CURRENCY,
@@ -86,7 +85,6 @@ import type {
 	HemsStatus,
 	SMART_COST_TYPE,
 	FatalError,
-	EvOpt,
 	BATTERY_MODE,
 	ComponentProps,
 } from "@/types/evcc";
@@ -107,7 +105,6 @@ export default defineComponent({
 		selectedLoadpointId: String,
 
 		notifications: { type: Array as PropType<Notification[]>, default: () => [] },
-		offline: Boolean,
 		setupRequired: Boolean,
 
 		// details
@@ -117,21 +114,14 @@ export default defineComponent({
 		pvPower: Number,
 		pv: { type: Array as PropType<Meter[]>, default: () => [] },
 		aux: { type: Array as PropType<Meter[]>, default: () => [] },
-		ext: { type: Array as PropType<Meter[]>, default: () => [] },
 		consumers: { type: Array as PropType<Meter[]>, default: () => [] },
-		batteryDischargeControl: Boolean,
 		solarAdjusted: Boolean,
 		batteryGridChargeLimit: { type: [Number, null] as PropType<number | null>, default: null },
 		batteryGridChargeActive: Boolean,
 		batteryMode: String as PropType<BATTERY_MODE>,
 		battery: { type: Object as PropType<Battery> },
-		gridCurrents: Array,
-		prioritySoc: Number,
-		bufferSoc: Number,
-		bufferStartSoc: Number,
 		siteTitle: String,
 		vehicles: Object,
-		authProviders: { type: Object as PropType<AuthProviders>, default: () => ({}) },
 		currency: { type: String as PropType<CURRENCY> },
 		tariffFeedIn: Number,
 		tariffGrid: Number,
@@ -147,7 +137,6 @@ export default defineComponent({
 		fatal: { type: Array as PropType<FatalError[]>, default: () => [] },
 		forecast: Object as PropType<Forecast>,
 		hems: Object as PropType<ConfigStatus<HemsConfig, HemsStatus>>,
-		evopt: { type: Object as PropType<EvOpt> },
 	},
 	computed: {
 		headerTitle() {

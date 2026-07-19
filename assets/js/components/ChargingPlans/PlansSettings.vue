@@ -80,7 +80,7 @@ import api from "@/api";
 import deepEqual from "@/utils/deepEqual";
 import { debounceLeading } from "@/utils/debounceLeading";
 import { defineComponent, type PropType } from "vue";
-import type { Vehicle, CURRENCY, Forecast, ComponentProps } from "@/types/evcc";
+import type { CURRENCY, Forecast, ComponentProps } from "@/types/evcc";
 import type {
 	StaticPlan,
 	RepeatingPlan,
@@ -118,7 +118,6 @@ export default defineComponent({
 		currency: String as PropType<CURRENCY>,
 		mode: String,
 		capacity: Number,
-		vehicle: Object as PropType<Vehicle>,
 		vehicleLimitSoc: Number,
 		planOverrun: Number,
 		forecast: Object as PropType<Forecast>,

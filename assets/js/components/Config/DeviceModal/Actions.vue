@@ -71,7 +71,6 @@ export default defineComponent({
 		},
 		isSaving: Boolean as PropType<boolean>,
 		isSucceeded: Boolean as PropType<boolean>,
-		isNew: Boolean as PropType<boolean>,
 		sponsorTokenRequired: Boolean as PropType<boolean>,
 		currency: String as PropType<CURRENCY>,
 	},

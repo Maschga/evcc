@@ -230,10 +230,6 @@ export default defineComponent({
 			type: Array as PropType<string[]>,
 			default: () => [],
 		},
-		dimmedBatteryColors: {
-			type: Array as PropType<string[]>,
-			default: () => [],
-		},
 	},
 	computed: {
 		timeSlots() {

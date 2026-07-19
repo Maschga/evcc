@@ -83,7 +83,6 @@ export default defineComponent({
 		minSoc: { type: Number, default: 0 },
 		limitSoc: { type: Number, default: 0 },
 		mode: { type: String, default: "" },
-		vehicleName: String,
 		vehicleNotReachable: Boolean,
 		socBasedCharging: Boolean,
 		rangePerSoc: Number,

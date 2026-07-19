@@ -98,7 +98,6 @@ import { type CURRENCY, type Rate, type SelectOption, type Slot } from "@/types/
 import { generateRateSlots, calculateCostRange } from "@/utils/tariffSlots";
 
 type LimitDirection = "above" | "below";
-type HighlightColor = "text-primary" | "text-warning";
 
 export default defineComponent({
 	name: "SmartTariffBase",
@@ -125,11 +124,6 @@ export default defineComponent({
 		currentPriceLabel: String,
 		resetWarningKey: String,
 		limitDirection: { type: String as PropType<LimitDirection>, default: "below" },
-		highlightColor: { type: String as PropType<HighlightColor>, default: "text-primary" },
-		isSlotActive: {
-			type: Function as PropType<(value: number | undefined) => boolean>,
-			required: true,
-		},
 	},
 	emits: ["save-limit", "delete-limit", "apply-to-all"],
 	data() {

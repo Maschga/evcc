@@ -7,8 +7,6 @@ type WithChartOption = { chartOption: Record<string, unknown> };
 
 export default defineComponent({
   props: {
-    chartWidth: { type: Number, required: true },
-    endDate: { type: Date, required: true },
     scrollLeft: { type: Number, default: 0 },
   },
   emits: ["scroll"],
