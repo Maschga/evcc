@@ -33,24 +33,17 @@ const Template: StoryFn<typeof ChargingPlan> = (args) => ({
 });
 
 export const None = Template.bind({});
-None.args = {
-  id: "1",
-};
 
 export const SocBasedCharging = Template.bind({});
 SocBasedCharging.args = {
-  id: "1",
   effectivePlanTime: hoursFromNow(4),
   effectivePlanSoc: 77,
-  socBasedCharging: true,
   socBasedPlanning: true,
 };
 
 export const EnergyBasedCharging = Template.bind({});
 EnergyBasedCharging.args = {
-  id: "1",
   effectivePlanTime: hoursFromNow(12),
   planEnergy: 77,
-  socBasedCharging: false,
   socBasedPlanning: false,
 };

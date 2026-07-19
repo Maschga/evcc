@@ -7,6 +7,10 @@ type WithChartOption = { chartOption: Record<string, unknown> };
 
 export default defineComponent({
   props: {
+    // eslint-disable-next-line vue/no-unused-properties
+    chartWidth: { type: Number, required: true },
+    // eslint-disable-next-line vue/no-unused-properties
+    endDate: { type: Date, required: true },
     scrollLeft: { type: Number, default: 0 },
   },
   emits: ["scroll"],
