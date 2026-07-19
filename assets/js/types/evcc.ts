@@ -1,4 +1,4 @@
-import type { ComponentProps } from "vue-component-type-helpers";
+import type { ComponentProps as VueComponentProps } from "vue-component-type-helpers";
 import { type AllowedComponentProps, type VNodeProps } from "vue";
 import type { StaticPlan, RepeatingPlan, PlanStrategy } from "../components/ChargingPlans/types";
 import type { ForecastSlot, SolarDetails } from "../components/Forecast/types";
@@ -22,8 +22,6 @@ declare global {
     evccAppCapabilities?: string[];
   }
 }
-
-export type CollectorProps<T> = Omit<ComponentProps<T>, keyof (VNodeProps & AllowedComponentProps)>;
 
 export type AuthProviders = Record<string, { id: string; authenticated: boolean }>;
 
@@ -887,3 +885,16 @@ export interface Zone {
   months: string;
   hours: string;
 }
+
+// extract prop type from component
+type OptionalKeys<T> = {
+  [K in keyof T]-?: Omit<T, K> extends T ? K : never;
+}[keyof T];
+
+type RequiredButKeepUndefined<T> = Omit<T, OptionalKeys<T>> &
+  Required<{
+    [K in OptionalKeys<T>]: T[K] | undefined;
+  }>;
+export type ComponentProps<T> = RequiredButKeepUndefined<
+  Omit<VueComponentProps<T>, keyof (VNodeProps & AllowedComponentProps)>
+>;

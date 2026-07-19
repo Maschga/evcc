@@ -59,14 +59,12 @@ import VehicleIcon from "../VehicleIcon";
 import Options from "./Options.vue";
 import CloudOffline from "../MaterialIcon/CloudOffline.vue";
 import Sync from "../MaterialIcon/Sync.vue";
-import collector from "@/mixins/collector";
 import { defineComponent, type PropType } from "vue";
-import type { SelectOption, Vehicle } from "@/types/evcc";
+import type { ComponentProps, SelectOption, Vehicle } from "@/types/evcc";
 
 export default defineComponent({
 	name: "VehicleTitle",
 	components: { VehicleOptions: Options, VehicleIcon, Sync, CloudOffline },
-	mixins: [collector],
 	props: {
 		connected: Boolean,
 		id: [String, Number],
@@ -115,8 +113,13 @@ export default defineComponent({
 		showOptions() {
 			return this.vehicleKnown || this.vehicles.length;
 		},
-		vehicleOptionsProps() {
-			return this.collectProps(Options);
+		vehicleOptionsProps(): ComponentProps<typeof Options> {
+			return {
+				connected: this.connected,
+				id: this.id,
+				vehicleOptions: this.vehicleOptions,
+				selected: this.selected,
+			};
 		},
 	},
 	watch: {

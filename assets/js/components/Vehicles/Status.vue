@@ -110,7 +110,6 @@ export default defineComponent({
 		currency: String as PropType<CURRENCY>,
 		effectiveLimitSoc: Number,
 		effectivePlanSoc: { type: Number, default: 0 },
-		effectivePlanTime: String,
 		enabled: Boolean,
 		heating: Boolean,
 		continuous: Boolean,

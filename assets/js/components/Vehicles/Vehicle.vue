@@ -80,7 +80,6 @@
 </template>
 
 <script lang="ts">
-import collector from "@/mixins/collector.ts";
 import formatter, { POWER_UNIT } from "@/mixins/formatter";
 import LabelAndValue from "../Helper/LabelAndValue.vue";
 import Title from "./Title.vue";
@@ -99,6 +98,7 @@ import {
 	type Vehicle,
 	type LoadpointUi,
 	type LoadpointSuggestion,
+	type ComponentProps,
 } from "@/types/evcc";
 import type { PlanStrategy } from "@/components/ChargingPlans/types";
 import BatteryBoostButton from "../Loadpoints/BatteryBoostButton.vue";
@@ -116,7 +116,7 @@ export default defineComponent({
 		LimitEnergySelect,
 		BatteryBoostButton,
 	},
-	mixins: [collector, formatter],
+	mixins: [formatter],
 	props: {
 		chargedEnergy: { type: Number, default: 0 },
 		charging: Boolean,
@@ -128,9 +128,7 @@ export default defineComponent({
 		effectiveMinSoc: { type: Number, default: 0 },
 		effectivePlanSoc: Number,
 		effectivePlanTime: String,
-		effectivePlanStrategy: Object as PropType<PlanStrategy>,
 		batteryBoost: Boolean,
-		batteryBoostActive: Boolean,
 		batteryBoostAvailable: Boolean,
 		batteryBoostLimit: { type: Number, default: 100 },
 		batterySoc: Number,
@@ -145,17 +143,14 @@ export default defineComponent({
 		chargerStatusReason: String,
 		phaseAction: String,
 		phaseRemainingInterpolated: Number,
-		forecast: Object as PropType<Forecast>,
 		planActive: Boolean,
 		planEnergy: Number,
 		planProjectedStart: String,
 		planProjectedEnd: String,
-		planTime: String,
 		planTimeUnreachable: Boolean,
 		planOverrun: Number,
 		pvAction: String,
 		pvRemainingInterpolated: Number,
-		sessionSolarPercentage: Number,
 		smartCostActive: Boolean,
 		smartCostNextStart: String,
 		smartCostLimit: Number,
@@ -172,7 +167,6 @@ export default defineComponent({
 		vehicle: Object as PropType<Vehicle>,
 		vehicleDetectionActive: Boolean,
 		vehicleName: String,
-		vehicleRange: { type: Number, default: 0 },
 		vehicles: Array,
 		vehicleSoc: { type: Number, default: 0 },
 		vehicleLimitSoc: Number,
@@ -212,23 +206,104 @@ export default defineComponent({
 		minSoc() {
 			return this.effectiveMinSoc;
 		},
-		vehicleSocProps() {
-			return this.collectProps(Soc);
+		vehicleSocProps(): ComponentProps<typeof Soc> {
+			return {
+				connected: this.connected,
+				vehicleSoc: this.vehicleSoc,
+				vehicleLimitSoc: this.vehicleLimitSoc,
+				enabled: this.enabled,
+				charging: this.charging,
+				heating: this.heating,
+				ui: this.ui,
+				minSoc: this.minSoc,
+				minSocNotReached: this.minSocNotReached,
+				effectivePlanSoc: this.effectivePlanSoc,
+				effectiveLimitSoc: this.effectiveLimitSoc,
+				limitEnergy: this.limitEnergy,
+				planEnergy: this.planEnergy,
+				chargedEnergy: this.chargedEnergy,
+				socBasedCharging: this.socBasedCharging,
+				socBasedPlanning: this.socBasedPlanning,
+			};
 		},
-		vehicleStatus() {
-			return { ...this.collectProps(Status), statusOverride: this.statusOverride };
+		vehicleStatus(): ComponentProps<typeof Status> {
+			return {
+				vehicleSoc: this.vehicleSoc,
+				charging: this.charging,
+				chargingPlanDisabled: this.chargingPlanDisabled,
+				chargerStatusReason: this.chargerStatusReason,
+				connected: this.connected,
+				currency: this.currency,
+				effectiveLimitSoc: this.effectiveLimitSoc,
+				effectivePlanSoc: this.effectivePlanSoc,
+				enabled: this.enabled,
+				heating: this.heating,
+				continuous: this.continuous,
+				minSoc: this.minSoc,
+				minSocNotReached: this.minSocNotReached,
+				phaseAction: this.phaseAction,
+				phaseRemainingInterpolated: this.phaseRemainingInterpolated,
+				planActive: this.planActive,
+				planOverrun: this.planOverrun,
+				planProjectedEnd: this.planProjectedEnd,
+				planProjectedStart: this.planProjectedStart,
+				planTimeUnreachable: this.planTimeUnreachable,
+				pvAction: this.pvAction,
+				pvRemainingInterpolated: this.pvRemainingInterpolated,
+				smartCostActive: this.smartCostActive,
+				smartCostDisabled: this.smartCostDisabled,
+				smartCostLimit: this.smartCostLimit,
+				smartCostNextStart: this.smartCostNextStart,
+				smartCostType: this.smartCostType,
+				smartFeedInPriorityActive: this.smartFeedInPriorityActive,
+				smartFeedInPriorityDisabled: this.smartFeedInPriorityDisabled,
+				smartFeedInPriorityLimit: this.smartFeedInPriorityLimit,
+				smartFeedInPriorityNextStart: this.smartFeedInPriorityNextStart,
+				suggestion: this.suggestion,
+				tariffCo2: this.tariffCo2,
+				tariffGrid: this.tariffGrid,
+				tariffFeedIn: this.tariffFeedIn,
+				vehicleClimaterActive: this.vehicleClimaterActive,
+				vehicleWelcomeActive: this.vehicleWelcomeActive,
+				vehicleLimitSoc: this.vehicleLimitSoc,
+				statusOverride: this.statusOverride,
+			};
 		},
-		vehicleTitleProps() {
-			return this.collectProps(Title);
+		vehicleTitleProps(): ComponentProps<typeof Title> {
+			return {
+				connected: this.connected,
+				id: this.id,
+				vehicleDetectionActive: this.vehicleDetectionActive,
+				vehicleNotReachable: this.vehicleNotReachable,
+				icon: this.icon,
+				vehicleName: this.vehicleName,
+				vehicles: this.vehicles,
+				title: this.title,
+			};
 		},
-		chargingPlan() {
-			return this.collectProps(ChargingPlan);
+		chargingPlan(): ComponentProps<typeof ChargingPlan> {
+			return {
+				disabled: this.disabled,
+				effectivePlanSoc: this.effectivePlanSoc,
+				effectivePlanTime: this.effectivePlanTime,
+				planEnergy: this.planEnergy,
+				planTimeUnreachable: this.planTimeUnreachable,
+				socBasedPlanning: this.socBasedPlanning,
+				vehicle: this.vehicle,
+				capacity: this.capacity,
+			};
+		},
+		batteryBoostButtonProps(): ComponentProps<typeof BatteryBoostButton> {
+			return {
+				batteryBoost: this.batteryBoost,
+				batteryBoostLimit: this.batteryBoostLimit,
+				mode: this.mode,
+				batterySoc: this.batterySoc,
+				batteryMode: this.batteryMode,
+			};
 		},
 		showBoostButton(): boolean {
 			return this.connected && this.batteryBoostAvailable && this.batteryBoostLimit < 100;
-		},
-		batteryBoostButtonProps() {
-			return this.collectProps(BatteryBoostButton);
 		},
 		formattedSoc() {
 			if (!this.vehicleSoc) {

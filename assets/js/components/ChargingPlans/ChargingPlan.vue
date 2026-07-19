@@ -38,9 +38,7 @@ import formatter from "@/mixins/formatter";
 import minuteTicker from "@/mixins/minuteTicker";
 import { optionStep, fmtEnergy } from "@/utils/energyOptions.ts";
 import { defineComponent, type PropType } from "vue";
-import type { CURRENCY, Vehicle } from "@/types/evcc";
-import type { PlanStrategy } from "./types";
-import type { Forecast } from "@/types/evcc.ts";
+import type { Vehicle } from "@/types/evcc";
 
 export default defineComponent({
 	name: "ChargingPlan",
@@ -49,31 +47,14 @@ export default defineComponent({
 	},
 	mixins: [formatter, minuteTicker],
 	props: {
-		currency: String as PropType<CURRENCY>,
 		disabled: Boolean,
-		effectiveLimitSoc: Number,
 		effectivePlanSoc: Number,
 		effectivePlanTime: String,
-		effectivePlanStrategy: Object as PropType<PlanStrategy>,
-		id: [String, Number],
-		limitEnergy: Number,
-		mode: String,
-		planActive: Boolean,
 		planEnergy: Number,
-		planTime: String,
 		planTimeUnreachable: Boolean,
-		planOverrun: Number,
-		rangePerSoc: Number,
-		smartCostType: String,
 		socBasedPlanning: Boolean,
-		socBasedCharging: Boolean,
-		socPerKwh: Number,
 		vehicle: Object as PropType<Vehicle>,
 		capacity: Number,
-		vehicleSoc: Number,
-		vehicleLimitSoc: Number,
-		vehicleNotReachable: Boolean,
-		forecast: Object as PropType<Forecast>,
 	},
 	emits: ["open-modal"],
 	data() {

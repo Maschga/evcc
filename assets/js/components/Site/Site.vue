@@ -72,7 +72,6 @@ import Energyflow from "../Energyflow/Energyflow.vue";
 import HemsWarning from "../HemsWarning.vue";
 import Loadpoints from "../Loadpoints/Loadpoints.vue";
 import formatter from "@/mixins/formatter";
-import collector from "@/mixins/collector.ts";
 import WelcomeIcons from "./WelcomeIcons.vue";
 import { defineComponent, type PropType } from "vue";
 import type {
@@ -89,6 +88,7 @@ import type {
 	FatalError,
 	EvOpt,
 	BATTERY_MODE,
+	ComponentProps,
 } from "@/types/evcc";
 import store from "@/store";
 import type { Grid } from "./types";
@@ -102,7 +102,7 @@ export default defineComponent({
 		TopHeader,
 		WelcomeIcons,
 	},
-	mixins: [formatter, collector],
+	mixins: [formatter],
 	props: {
 		selectedLoadpointId: String,
 
@@ -174,8 +174,35 @@ export default defineComponent({
 		experimental() {
 			return store.state?.experimental;
 		},
-		energyflow() {
-			return this.collectProps(Energyflow);
+		energyflow(): ComponentProps<typeof Energyflow> {
+			return {
+				gridConfigured: this.gridConfigured,
+				experimental: this.experimental,
+				solarAdjusted: this.solarAdjusted,
+				gridPower: this.gridPower,
+				homePower: this.homePower,
+				pvConfigured: this.pvConfigured,
+				pv: this.pv,
+				aux: this.aux,
+				consumers: this.consumers,
+				pvPower: this.pvPower,
+				loadpoints: this.loadpoints,
+				batteryConfigured: this.batteryConfigured,
+				battery: this.battery,
+				batteryGridChargeLimit: this.batteryGridChargeLimit,
+				batteryGridChargeActive: this.batteryGridChargeActive,
+				batteryMode: this.batteryMode,
+				tariffGrid: this.tariffGrid,
+				tariffFeedIn: this.tariffFeedIn,
+				tariffCo2: this.tariffCo2,
+				tariffPriceHome: this.tariffPriceHome,
+				tariffCo2Home: this.tariffCo2Home,
+				tariffPriceLoadpoints: this.tariffPriceLoadpoints,
+				tariffCo2Loadpoints: this.tariffCo2Loadpoints,
+				smartCostType: this.smartCostType,
+				currency: this.currency,
+				forecast: this.forecast,
+			};
 		},
 		vehicleList() {
 			const vehicles = this.vehicles || {};

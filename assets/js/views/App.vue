@@ -26,8 +26,8 @@ import PasswordModal from "../components/Auth/PasswordModal.vue";
 import LoginModal from "../components/Auth/LoginModal.vue";
 import AboutModal from "../components/AboutModal.vue";
 import HelpModal from "../components/HelpModal.vue";
-import collector from "../mixins/collector";
 import { defineComponent } from "vue";
+import type { ComponentProps } from "@/types/evcc.ts";
 
 // assume offline if not data received for 5 minutes
 let lastDataReceived = new Date();
@@ -50,7 +50,6 @@ export default defineComponent({
 		LoginModal,
 		OfflineIndicator,
 	},
-	mixins: [collector],
 	props: {
 		notifications: Array,
 		offline: Boolean,
@@ -77,27 +76,50 @@ export default defineComponent({
 			const { state, uiLoadpoints } = store;
 			return { ...state, uiLoadpoints: uiLoadpoints.value };
 		},
-		globalSettingsProps() {
-			return this.collectProps(GlobalSettingsModal, this.state);
-		},
-		offlineIndicatorProps() {
-			return this.collectProps(OfflineIndicator, this.state);
-		},
-		loginModalProps() {
-			return this.collectProps(LoginModal, this.state);
-		},
-		aboutModalProps() {
+		globalSettingsProps(): ComponentProps<typeof GlobalSettingsModal> {
 			return {
-				installed: window.evcc.version,
-				commit: window.evcc.commit,
-				...this.collectProps(AboutModal, this.state),
+				uiLoadpoints: this.uiLoadpoints,
 			};
 		},
-		bottomTabBarProps() {
+		offlineIndicatorProps(): ComponentProps<typeof OfflineIndicator> {
+			return {
+				offline: this.offline,
+				fatal: this.fatal,
+				startupCompleted: this.startupCompleted,
+			};
+		},
+		loginModalProps(): ComponentProps<typeof LoginModal> {
+			return {
+				demoMode: this.demoMode,
+			};
+		},
+		aboutModalProps(): ComponentProps<typeof AboutModal> {
 			return {
 				installed: window.evcc.version,
 				commit: window.evcc.commit,
-				...this.collectProps(BottomTabBar, this.state),
+				availableVersion: this.availableVersion,
+				releaseNotes: this.releaseNotes,
+				hasUpdater: this.hasUpdater,
+				uploadMessage: this.uploadMessage,
+				uploadProgress: this.uploadProgress,
+			};
+		},
+		bottomTabBarProps(): ComponentProps<typeof BottomTabBar> {
+			return {
+				battery: this.battery,
+				batteryGridChargeActive: this.batteryGridChargeActive,
+				batteryMode: this.batteryMode,
+				authProviders: this.authProviders,
+				sponsor: this.sponsor,
+				fatal: this.fatal,
+				experimental: this.experimental,
+				authDisabled: this.authDisabled,
+				offline: this.offline,
+				startupCompleted: this.startupCompleted,
+				evopt: this.evopt,
+				installed: window.evcc.version,
+				commit: window.evcc.commit,
+				availableVersion: this.availableVersion,
 			};
 		},
 	},

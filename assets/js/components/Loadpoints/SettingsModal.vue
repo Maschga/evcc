@@ -162,14 +162,13 @@
 </template>
 
 <script lang="ts">
-import collector from "@/mixins/collector.ts";
 import formatter from "@/mixins/formatter";
 import GenericModal from "../Helper/GenericModal.vue";
 import SmartCostLimit from "../Tariff/SmartCostLimit.vue";
 import SmartFeedInPriority from "../Tariff/SmartFeedInPriority.vue";
 import SettingsBatteryBoost from "./SettingsBatteryBoost.vue";
 import { defineComponent, type PropType } from "vue";
-import { PHASES, CURRENCY, SMART_COST_TYPE, type Forecast, type UiLoadpoint } from "@/types/evcc";
+import { PHASES, CURRENCY, SMART_COST_TYPE, type Forecast, type UiLoadpoint, type ComponentProps } from "@/types/evcc";
 import api from "@/api";
 
 const V = 230;
@@ -196,14 +195,13 @@ export default defineComponent({
 		SmartFeedInPriority,
 		LoadpointSettingsBatteryBoost: SettingsBatteryBoost,
 	},
-	mixins: [formatter, collector],
+	mixins: [formatter],
 	props: {
 		loadpoints: { type: Array as PropType<UiLoadpoint[]>, default: () => [] },
 		batteryConfigured: Boolean,
 		smartCostType: String as PropType<SMART_COST_TYPE>,
 		smartCostAvailable: Boolean,
 		smartFeedInPriorityAvailable: Boolean,
-		tariffGrid: Number,
 		currency: String as PropType<CURRENCY>,
 		multipleLoadpoints: Boolean,
 		forecast: Object as PropType<Forecast>,
@@ -266,8 +264,11 @@ export default defineComponent({
 			// 1p or 3p possible
 			return [THREE_PHASES, ONE_PHASE];
 		},
-		batteryBoostProps() {
-			return this.collectProps(SettingsBatteryBoost);
+		batteryBoostProps(): ComponentProps<typeof SettingsBatteryBoost> {
+			return {
+				formId: this.formId,
+				batteryBoostLimit: this.batteryBoostLimit,
+			};
 		},
 		maxPhases() {
 			if (this.loadpoint?.chargerPhases1p3p && this.phasesConfigured === AUTO) {

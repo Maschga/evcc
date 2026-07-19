@@ -76,12 +76,11 @@ import ChargingPlanStrategy from "./PlanStrategy.vue";
 import RepeatingSettings from "./PlansRepeatingSettings.vue";
 import Warnings from "./Warnings.vue";
 import formatter from "@/mixins/formatter";
-import collector from "@/mixins/collector";
 import api from "@/api";
 import deepEqual from "@/utils/deepEqual";
 import { debounceLeading } from "@/utils/debounceLeading";
 import { defineComponent, type PropType } from "vue";
-import type { Vehicle, CURRENCY, Forecast } from "@/types/evcc";
+import type { Vehicle, CURRENCY, Forecast, ComponentProps } from "@/types/evcc";
 import type {
 	StaticPlan,
 	RepeatingPlan,
@@ -101,7 +100,7 @@ export default defineComponent({
 		ChargingPlansRepeatingSettings: RepeatingSettings,
 		ChargingPlanWarnings: Warnings,
 	},
-	mixins: [formatter, collector],
+	mixins: [formatter],
 	props: {
 		id: [String, Number],
 		staticPlan: Object as PropType<StaticPlan>,
@@ -148,8 +147,20 @@ export default defineComponent({
 		multiplePlans(): boolean {
 			return this.repeatingPlans.length !== 0;
 		},
-		chargingPlanWarningsProps() {
-			return this.collectProps(Warnings);
+		chargingPlanWarningsProps(): ComponentProps<typeof Warnings> {
+			return {
+				effectiveLimitSoc: this.effectiveLimitSoc,
+				effectivePlanTime: this.effectivePlanTime,
+				effectivePlanSoc: this.effectivePlanSoc,
+				planEnergy: this.planEnergy,
+				limitEnergy: this.limitEnergy,
+				socBasedPlanning: this.socBasedPlanning,
+				mode: this.mode,
+				tariff: this.tariff,
+				plan: this.plan,
+				vehicleLimitSoc: this.vehicleLimitSoc,
+				planOverrun: this.planOverrun,
+			};
 		},
 		chargingPlanPreviewProps(): any {
 			const rates = (this.forecast?.planner || []).map(({ start, end, value }) => ({

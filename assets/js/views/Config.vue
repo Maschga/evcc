@@ -513,7 +513,6 @@ import ChargerModal from "../components/Config/ChargerModal.vue";
 import CircuitsIcon from "../components/MaterialIcon/Circuits.vue";
 import CircuitsModal from "../components/Config/CircuitsModal.vue";
 import CircuitTags from "../components/Config/CircuitTags.vue";
-import collector from "../mixins/collector";
 import ControlModal from "../components/Config/ControlModal.vue";
 import DeviceCard from "../components/Config/DeviceCard.vue";
 import DeviceTags from "../components/Config/DeviceTags.vue";
@@ -659,7 +658,7 @@ export default defineComponent({
 		ApiKeyModal,
 		AuthProvidersCard,
 	},
-	mixins: [formatter, collector],
+	mixins: [formatter],
 	props: {
 		offline: Boolean,
 		notifications: { type: Array as PropType<Notification[]>, default: () => [] },

@@ -112,7 +112,6 @@ import VehicleComponent from "../Vehicles/Vehicle.vue";
 import Phases from "./Phases.vue";
 import LabelAndValue from "../Helper/LabelAndValue.vue";
 import formatter, { POWER_UNIT } from "@/mixins/formatter";
-import collector from "@/mixins/collector.js";
 import SettingsButton from "./SettingsButton.vue";
 import SettingsModal from "./SettingsModal.vue";
 import VehicleIcon from "../VehicleIcon";
@@ -130,6 +129,7 @@ import type {
 	BATTERY_MODE,
 	LoadpointUi,
 	LoadpointSuggestion,
+	ComponentProps,
 } from "@/types/evcc";
 import type { PlanStrategy } from "@/components/ChargingPlans/types";
 
@@ -144,7 +144,7 @@ export default defineComponent({
 		LoadpointSessionInfo: SessionInfo,
 		VehicleIcon,
 	},
-	mixins: [formatter, collector],
+	mixins: [formatter],
 	props: {
 		id: { type: String, required: true },
 		single: Boolean,
@@ -299,20 +299,114 @@ export default defineComponent({
 		switchDevice() {
 			return this.chargerFeatureSwitchDevice;
 		},
-		phasesProps() {
-			return this.collectProps(Phases);
+		phasesProps(): ComponentProps<typeof Phases> {
+			return {
+				offeredCurrent: this.offeredCurrent,
+				chargeCurrents: this.chargeCurrents,
+				phasesActive: this.phasesActive,
+				minCurrent: this.minCurrent,
+				maxCurrent: this.maxCurrent,
+			};
 		},
-		modeProps() {
-			return this.collectProps(Mode);
+		modeProps(): ComponentProps<typeof Mode> {
+			return {
+				mode: this.mode,
+				pvPossible: this.pvPossible,
+				smartCostAvailable: this.smartCostAvailable,
+				switchDevice: this.switchDevice,
+			};
 		},
-		sessionInfoProps() {
-			return this.collectProps(SessionInfo);
+		sessionInfoProps(): ComponentProps<typeof SessionInfo> {
+			return {
+				id: this.id,
+				sessionCo2PerKWh: this.sessionCo2PerKWh,
+				sessionPricePerKWh: this.sessionPricePerKWh,
+				sessionPrice: this.sessionPrice,
+				currency: this.currency,
+				sessionSolarPercentage: this.sessionSolarPercentage,
+				chargeRemainingDurationInterpolated: this.chargeRemainingDurationInterpolated,
+				chargeDurationInterpolated: this.chargeDurationInterpolated,
+				sessionEnergy: this.sessionEnergy,
+				last24hEnergy: this.last24hEnergy,
+				last7dEnergy: this.last7dEnergy,
+				tariffCo2: this.tariffCo2,
+				tariffGrid: this.tariffGrid,
+			};
 		},
-		settingsModal() {
-			return this.collectProps(SettingsModal);
+		settingsModal(): ComponentProps<typeof SettingsModal> {
+			return {
+				loadpoints: this.loadpoints,
+				batteryConfigured: this.batteryConfigured,
+				smartCostType: this.smartCostType,
+				smartCostAvailable: this.smartCostAvailable,
+				smartFeedInPriorityAvailable: this.smartFeedInPriorityAvailable,
+				currency: this.currency,
+				multipleLoadpoints: this.multipleLoadpoints,
+				forecast: this.forecast,
+			};
 		},
-		vehicleProps() {
-			return this.collectProps(VehicleComponent);
+		vehicleProps(): ComponentProps<typeof VehicleComponent> {
+			return {
+				chargedEnergy: this.chargedEnergy,
+				charging: this.charging,
+				vehicleClimaterActive: this.vehicleClimaterActive,
+				vehicleWelcomeActive: this.vehicleWelcomeActive,
+				connected: this.connected,
+				currency: this.currency,
+				effectiveLimitSoc: this.effectiveLimitSoc,
+				effectiveMinSoc: this.effectiveMinSoc,
+				effectivePlanSoc: this.effectivePlanSoc,
+				effectivePlanTime: this.effectivePlanTime,
+				batteryBoost: this.batteryBoost,
+				batteryBoostAvailable: this.batteryBoostAvailable,
+				batteryBoostLimit: this.batteryBoostLimit,
+				batterySoc: this.batterySoc,
+				batteryMode: this.batteryMode,
+				enabled: this.enabled,
+				heating: this.heating,
+				continuous: this.continuous,
+				id: this.id,
+				integratedDevice: this.integratedDevice,
+				limitEnergy: this.limitEnergy,
+				mode: this.mode,
+				chargerStatusReason: this.chargerStatusReason,
+				phaseAction: this.phaseAction,
+				phaseRemainingInterpolated: this.phaseRemainingInterpolated,
+				planActive: this.planActive,
+				planEnergy: this.planEnergy,
+				planProjectedStart: this.planProjectedStart,
+				planProjectedEnd: this.planProjectedEnd,
+				planTimeUnreachable: this.planTimeUnreachable,
+				planOverrun: this.planOverrun,
+				pvAction: this.pvAction,
+				pvRemainingInterpolated: this.pvRemainingInterpolated,
+				smartCostActive: this.smartCostActive,
+				smartCostNextStart: this.smartCostNextStart,
+				smartCostLimit: this.smartCostLimit,
+				smartCostType: this.smartCostType,
+				smartFeedInPriorityActive: this.smartFeedInPriorityActive,
+				smartFeedInPriorityNextStart: this.smartFeedInPriorityNextStart,
+				smartFeedInPriorityLimit: this.smartFeedInPriorityLimit,
+				socBasedCharging: this.socBasedCharging,
+				suggestion: this.suggestion,
+				socBasedPlanning: this.socBasedPlanning,
+				tariffCo2: this.tariffCo2,
+				tariffGrid: this.tariffGrid,
+				tariffFeedIn: this.tariffFeedIn,
+				vehicle: this.vehicle,
+				vehicleDetectionActive: this.vehicleDetectionActive,
+				vehicleName: this.vehicleName,
+				vehicles: this.vehicles,
+				vehicleSoc: this.vehicleSoc,
+				vehicleLimitSoc: this.vehicleLimitSoc,
+				vehicleNotReachable: this.vehicleNotReachable,
+				minSocNotReached: this.minSocNotReached,
+				ui: this.ui,
+				capacity: this.capacity,
+				range: this.range,
+				rangePerSoc: this.rangePerSoc,
+				socPerKwh: this.socPerKwh,
+			};
 		},
 		showChargingIndicator() {
 			return this.charging && this.chargePower > 0;

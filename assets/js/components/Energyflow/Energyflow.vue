@@ -312,7 +312,6 @@ import Entry from "./Entry.vue";
 import formatter, { POWER_UNIT } from "@/mixins/formatter";
 import AnimatedNumber from "../Helper/AnimatedNumber.vue";
 import settings from "@/settings";
-import collector from "@/mixins/collector.js";
 import { defineComponent, type PropType } from "vue";
 import {
 	SMART_COST_TYPE,
@@ -330,7 +329,7 @@ export default defineComponent({
 		EnergyflowEntry: Entry,
 		AnimatedNumber,
 	},
-	mixins: [formatter, collector],
+	mixins: [formatter],
 	props: {
 		gridConfigured: Boolean,
 		experimental: Boolean,
@@ -340,13 +339,11 @@ export default defineComponent({
 		pvConfigured: Boolean,
 		pv: { type: Array as PropType<Meter[]>, default: () => [] },
 		aux: { type: Array as PropType<Meter[]>, default: () => [] },
-		ext: { type: Array as PropType<Meter[]>, default: () => [] },
 		consumers: { type: Array as PropType<Meter[]>, default: () => [] },
 		pvPower: { type: Number, default: 0 },
 		loadpoints: { type: Array as PropType<UiLoadpoint[]>, default: () => [] },
 		batteryConfigured: { type: Boolean },
 		battery: { type: Object as PropType<Battery> },
-		batteryDischargeControl: { type: Boolean },
 		batteryGridChargeLimit: { type: Number },
 		batteryGridChargeActive: { type: Boolean },
 		batteryMode: { type: String },
@@ -359,9 +356,6 @@ export default defineComponent({
 		tariffCo2Loadpoints: { type: Number },
 		smartCostType: { type: String },
 		currency: { type: String as PropType<CURRENCY> },
-		prioritySoc: { type: Number },
-		bufferSoc: { type: Number },
-		bufferStartSoc: { type: Number },
 		forecast: { type: Object as PropType<Forecast>, default: () => ({}) },
 	},
 	data: () => {

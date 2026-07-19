@@ -65,7 +65,6 @@ export default defineComponent({
 		battery: { type: Object as PropType<Battery> },
 		batteryGridChargeActive: Boolean,
 		batteryMode: { type: String as PropType<string> },
-		forecast: { type: Object as PropType<Forecast> },
 		authProviders: { type: Object as PropType<AuthProviders>, default: () => ({}) },
 		sponsor: { type: Object as PropType<Sponsor>, default: () => ({}) },
 		fatal: { type: Array as PropType<FatalError[]>, default: () => [] },
