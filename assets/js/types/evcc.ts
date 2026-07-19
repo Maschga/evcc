@@ -1,3 +1,5 @@
+import type { ComponentProps } from "vue-component-type-helpers";
+import { type AllowedComponentProps, type VNodeProps } from "vue";
 import type { StaticPlan, RepeatingPlan, PlanStrategy } from "../components/ChargingPlans/types";
 import type { ForecastSlot, SolarDetails } from "../components/Forecast/types";
 
@@ -20,6 +22,8 @@ declare global {
     evccAppCapabilities?: string[];
   }
 }
+
+export type CollectorProps<T> = Omit<ComponentProps<T>, keyof (VNodeProps & AllowedComponentProps)>;
 
 export type AuthProviders = Record<string, { id: string; authenticated: boolean }>;
 
@@ -771,10 +775,6 @@ export type DeviceType =
 export type MeterType = "grid" | "pv" | "battery" | "charge" | "aux" | "ext" | "consumer";
 export type MeterTemplateUsage = "grid" | "pv" | "battery" | "charge" | "aux";
 export type TariffType = "grid" | "feedIn" | "co2" | "planner" | "solar" | "temperature";
-
-// see https://stackoverflow.com/a/54178819
-type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
-export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 export interface SiteConfig {
   grid: string;

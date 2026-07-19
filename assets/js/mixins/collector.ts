@@ -1,38 +1,26 @@
-import { defineComponent, type ComponentPropsOptions } from "vue";
-import type { State } from "@/types/evcc";
+import type { ComponentProps } from "vue-component-type-helpers";
+import { defineComponent, type AllowedComponentProps, type VNodeProps } from "vue";
 
-type PropsComponent = {
-  new (...args: never[]): { $props: object };
-  props?: ComponentPropsOptions;
-};
-
-type ComponentProps<T extends PropsComponent> = InstanceType<T>["$props"];
-
-const propNames = <T extends PropsComponent>(component: T) => {
-  const props = component.props;
-  return (Array.isArray(props) ? props : Object.keys(props ?? {})) as (keyof ComponentProps<T>)[];
-};
+type CollectorProps<T> = Omit<ComponentProps<T>, keyof (VNodeProps & AllowedComponentProps)>;
+export function getProps<T>(
+  component: T
+): (keyof CollectorProps<T>)[] {
+  return Object.keys((component as any).props) as (keyof CollectorProps<T>)[]
+}
 
 export default defineComponent({
   methods: {
-    // collect all target component properties from current instance
-    collectProps<T extends PropsComponent>(
+    collectProps<T>(
+      this: CollectorProps<T>,
       component: T,
-      state?: State
-    ): Partial<ComponentProps<T>> {
-      const data: Partial<ComponentProps<T>> = {};
-      const instance = this as Partial<ComponentProps<T>>;
-      for (const prop of propNames(component)) {
-        // check in optional state
-        if (state && prop in state) {
-          data[prop] = (state as Partial<ComponentProps<T>>)[prop];
-        }
-        // check in current instance
-        if (prop in instance) {
-          data[prop] = instance[prop];
-        }
+    ): CollectorProps<T> {
+      const result = {} as CollectorProps<T>;
+
+      for (const prop of getProps(component)) {
+        result[prop] = this[prop];
       }
-      return data;
+
+      return result;
     },
   },
 });
