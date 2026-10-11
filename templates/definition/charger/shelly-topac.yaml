@@ -3,15 +3,18 @@ products:
   - brand: Shelly
     description:
       generic: Top AC Portable EV Charger
-capabilities: ["mA"]
+capabilities: ["mA", "meter", "dim"]
 requirements:
   description:
     de: "'auto_charge' muss auf false gesetzt werden."
     en: "'auto_charge' must be set to false."
   evcc: ["sponsorship"]
+discovery:
+  mdns: ["_shelly._tcp", "_http._tcp:shelly*"]
+  hostname: ["shelly*"]
+  mac: ["8400EC"]
 params:
   - name: host
-    required: true
   - name: user
   - name: password
 render: |

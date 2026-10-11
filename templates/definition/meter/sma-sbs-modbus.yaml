@@ -4,6 +4,9 @@ products:
     description:
       generic: Sunny Boy Storage 3.7/5.0/6.0 (Modbus)
 capabilities: ["battery-control"]
+discovery:
+  hostname: ["sma*"]
+  mac: ["0015BB"]
 params:
   - name: usage
     choice: ["battery"]
@@ -14,14 +17,12 @@ params:
     help:
       en: ModbusTCP server needs to be enabled.
       de: Der ModbusTCP Server muss aktiviert sein.
-  - name: capacity
-    advanced: true
+  - preset: battery-params
   - name: maxchargepower
     default: 4200
+    required: true
   - name: watchdog
-    type: duration
     default: 60s
-    advanced: true
   - name: chargepower
     deprecated: true
 render: |
@@ -229,4 +230,4 @@ render: |
                 address: 40801 # CmpBMS.GridWSpt - Sollwert der Netzaustauschleistung
                 type: writemultiple
                 decode: uint32
-  capacity: {{ .capacity }} # kWh
+  {{- include "battery-params" . }}

@@ -3,21 +3,34 @@ package tariff
 import (
 	"errors"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"reflect"
+	"slices"
 	"time"
 
 	"github.com/evcc-io/evcc/api"
 	"github.com/evcc-io/evcc/plugin/golang/stdlib"
+	"github.com/evcc-io/evcc/tariff/fixed"
 	"github.com/traefik/yaegi/interp"
 )
 
 type embed struct {
 	Features_ []api.Feature `mapstructure:"features"`
 
-	Charges float64 `mapstructure:"charges"`
-	Tax     float64 `mapstructure:"tax"`
-	Formula string  `mapstructure:"formula"`
+	Charges       float64             `mapstructure:"charges"`
+	ChargesZones_ []chargesZoneConfig `mapstructure:"chargesZones"`
+	Tax           float64             `mapstructure:"tax"`
+	Formula       string              `mapstructure:"formula"`
 
-	calc func(float64, time.Time) (float64, error)
+	chargesZones fixed.Zones
+	calc         func(price, charges float64, ts time.Time) (float64, error)
+}
+
+type chargesZoneConfig struct {
+	Charges             float64
+	Days, Hours, Months string
 }
 
 func (t *embed) init() (err error) {
@@ -27,51 +40,123 @@ func (t *embed) init() (err error) {
 		}
 	}()
 
+	specs := make([]fixed.ZoneSpec, len(t.ChargesZones_))
+	for i, c := range t.ChargesZones_ {
+		specs[i] = fixed.ZoneSpec{Price: c.Charges, Days: c.Days, Hours: c.Hours, Months: c.Months}
+	}
+	zones, err := fixed.ParseZones(specs)
+	if err != nil {
+		return err
+	}
+	t.chargesZones = zones
+
 	if t.Formula == "" {
 		return nil
 	}
 
-	t.calc = func(price float64, ts time.Time) (float64, error) {
-		vm := interp.New(interp.Options{})
-		if err := vm.Use(stdlib.Symbols); err != nil {
-			return 0, err
-		}
-		vm.ImportUsed()
+	vm := interp.New(interp.Options{})
+	if err := vm.Use(stdlib.Symbols); err != nil {
+		return err
+	}
+	vm.ImportUsed()
 
-		if _, err := vm.Eval(fmt.Sprintf(`
+	body, err := formulaBody(t.Formula)
+	if err != nil {
+		return err
+	}
+
+	// Compile the formula into a callable function, avoiding any per-call parsing
+	src := fmt.Sprintf("var calc = func(price, charges, tax float64, ts time.Time) float64 {\n%s\n}", body)
+	if _, err := vm.Eval(src); err != nil {
+		return err
+	}
+
+	calcFn := vm.Globals()["calc"]
+
+	t.calc = func(price, charges float64, ts time.Time) (float64, error) {
 		var (
-			price float64 = %f
-			charges float64 = %f
-			tax float64 = %f
-			ts = time.Unix(%d, 0).Local()
-		)`, price, t.Charges, t.Tax, ts.Unix())); err != nil {
-			return 0, err
-		}
+			res []reflect.Value
+			err error
+		)
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					err = fmt.Errorf("panic: %v", r)
+				}
+			}()
+			res = calcFn.Call([]reflect.Value{
+				reflect.ValueOf(price),
+				reflect.ValueOf(charges),
+				reflect.ValueOf(t.Tax),
+				reflect.ValueOf(time.Unix(ts.Unix(), 0).Local()),
+			})
+		}()
 
-		res, err := vm.Eval(t.Formula)
 		if err != nil {
 			return 0, err
 		}
-
-		if !res.CanFloat() {
-			return 0, errors.New("formula did not return a float value")
-		}
-
-		return res.Float(), nil
+		return res[0].Float(), nil
 	}
 
 	// test the formula
-	_, err = t.calc(0, time.Now())
+	_, err = t.calc(0, t.Charges, time.Now())
 
 	return err
 }
 
+// formulaBody turns the formula's trailing expression into the return statement,
+// allowing multi-statement formulas like `x := 1; if ... { x = 2 }; price + x`
+func formulaBody(formula string) (string, error) {
+	const prefix = "package p; func _() {\n"
+
+	f, err := parser.ParseFile(token.NewFileSet(), "", prefix+formula+"\n}", 0)
+	if err != nil {
+		return "", err
+	}
+
+	stmts := f.Decls[0].(*ast.FuncDecl).Body.List
+	if len(stmts) == 0 {
+		return "", errors.New("empty formula")
+	}
+
+	last, ok := stmts[len(stmts)-1].(*ast.ExprStmt)
+	if !ok {
+		return "", errors.New("formula must end with an expression")
+	}
+
+	// file base is 1, offsets are relative to the formula
+	start, end := int(last.Pos())-1-len(prefix), int(last.End())-1-len(prefix)
+
+	return formula[:start] + "return float64(" + formula[start:end] + ")" + formula[end:], nil
+}
+
+// effectiveCharges resolves the charge for ts in local time; later zones win.
+func (t *embed) effectiveCharges(ts time.Time) float64 {
+	if len(t.chargesZones) == 0 {
+		return t.Charges
+	}
+
+	ts = ts.Local()
+	day := fixed.Day(int(ts.Weekday()))
+	month := fixed.Month(ts.Month() - 1)
+	hm := fixed.HourMin{Hour: ts.Hour(), Min: ts.Minute()}
+
+	zones := t.chargesZones.ForDayAndMonth(day, month)
+	for _, z := range slices.Backward(zones) {
+		if z.Hours.Contains(hm) {
+			return z.Price
+		}
+	}
+	return t.Charges
+}
+
 func (t *embed) totalPrice(price float64, ts time.Time) float64 {
+	charges := t.effectiveCharges(ts)
 	if t.calc != nil {
-		res, _ := t.calc(price, ts)
+		res, _ := t.calc(price, charges, ts)
 		return res
 	}
-	return (price + t.Charges) * (1 + t.Tax)
+	return (price + charges) * (1 + t.Tax)
 }
 
 var _ api.FeatureDescriber = (*embed)(nil)

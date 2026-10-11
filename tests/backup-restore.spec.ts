@@ -1,6 +1,12 @@
 import { test, expect } from "@playwright/test";
 import { start, stop, baseUrl, restart } from "./evcc";
-import { openTopNavigation, expectModalVisible, expectModalHidden } from "./utils";
+import {
+  openMoreMenu,
+  expectModalVisible,
+  expectModalHidden,
+  enableAppContext,
+  expectAppEvent,
+} from "./utils";
 import fs from "fs";
 import path from "path";
 
@@ -15,7 +21,7 @@ test.describe("reset", async () => {
     await expect(page.getByTestId("sessions-entry")).toHaveCount(4);
 
     // open backup & restore modal
-    await openTopNavigation(page);
+    await openMoreMenu(page);
     await page.getByRole("link", { name: "Configuration" }).click();
     await page.getByRole("button", { name: "Backup & Restore" }).click();
     const modal = page.getByTestId("backup-restore-modal");
@@ -57,8 +63,8 @@ test.describe("reset", async () => {
     await meterModal.getByLabel("Power").fill("2000");
     await meterModal.getByRole("button", { name: "Save" }).click();
     await expectModalHidden(meterModal);
-    await page.getByTestId("generalconfig-title").getByRole("button", { name: "edit" }).click();
-    const titleModal = page.getByTestId("title-modal");
+    await page.getByTestId("generalconfig-site").getByRole("button", { name: "edit" }).click();
+    const titleModal = page.getByTestId("site-modal");
     await expectModalVisible(titleModal);
     await titleModal.getByLabel("Title").fill(title);
     await titleModal.getByRole("button", { name: "Save" }).click();
@@ -70,7 +76,7 @@ test.describe("reset", async () => {
     // verify changes are present
     await expect(page.getByTestId("offline-indicator")).toHaveAttribute("aria-hidden", "true");
     await expect(page.getByTestId("grid")).toBeVisible();
-    await expect(page.getByTestId("generalconfig-title")).toContainText(title);
+    await expect(page.getByTestId("generalconfig-site")).toContainText(title);
 
     // reset settings only
     await page.getByRole("button", { name: "Backup & Restore" }).click();
@@ -100,7 +106,7 @@ test.describe("reset", async () => {
     // verify deleted config and settings
     await page.goto("/#/config");
     await expect(page.getByTestId("grid")).not.toBeVisible();
-    await expect(page.getByTestId("generalconfig-title")).not.toContainText(title);
+    await expect(page.getByTestId("generalconfig-site")).not.toContainText(title);
     await stop();
   });
 });
@@ -114,8 +120,8 @@ test.describe("backup and restore", async () => {
     await page.goto("/#/config");
 
     // set initial title
-    await page.getByTestId("generalconfig-title").getByRole("button", { name: "edit" }).click();
-    const titleModal = page.getByTestId("title-modal");
+    await page.getByTestId("generalconfig-site").getByRole("button", { name: "edit" }).click();
+    const titleModal = page.getByTestId("site-modal");
     await expectModalVisible(titleModal);
     await titleModal.getByLabel("Title").fill(initialTitle);
     await titleModal.getByRole("button", { name: "Save" }).click();
@@ -132,7 +138,7 @@ test.describe("backup and restore", async () => {
 
     // verify initial state
     await expect(page.getByTestId("grid")).toBeVisible();
-    await expect(page.getByTestId("generalconfig-title")).toContainText(initialTitle);
+    await expect(page.getByTestId("generalconfig-site")).toContainText(initialTitle);
 
     // open backup & restore modal
     await page.getByRole("button", { name: "Backup & Restore" }).click();
@@ -147,14 +153,14 @@ test.describe("backup and restore", async () => {
     const backupConfirmModal = page.getByTestId("backup-restore-confirm-modal");
     await expectModalVisible(backupConfirmModal);
     await backupConfirmModal.getByRole("button", { name: "Download backup" }).click();
-    await expectModalHidden(backupConfirmModal);
     const download = await downloadPromise;
+    await expectModalHidden(backupConfirmModal);
     await expectModalVisible(backupModal);
     await backupModal.locator(".btn-close").click();
     await expectModalHidden(backupModal);
 
     // change title and delete meter
-    await page.getByTestId("generalconfig-title").getByRole("button", { name: "edit" }).click();
+    await page.getByTestId("generalconfig-site").getByRole("button", { name: "edit" }).click();
     await expectModalVisible(titleModal);
     await titleModal.getByLabel("Title").fill(changedTitle);
     await titleModal.getByRole("button", { name: "Save" }).click();
@@ -167,7 +173,7 @@ test.describe("backup and restore", async () => {
 
     // verify changes
     await expect(page.getByTestId("grid")).not.toBeVisible();
-    await expect(page.getByTestId("generalconfig-title")).toContainText(changedTitle);
+    await expect(page.getByTestId("generalconfig-site")).toContainText(changedTitle);
 
     // restore
     await page.getByRole("button", { name: "Backup & Restore" }).click();
@@ -205,7 +211,7 @@ test.describe("backup and restore", async () => {
     // verify initial state in config ui
     await page.goto("/#/config");
     await expect(page.getByTestId("grid")).toBeVisible();
-    await expect(page.getByTestId("generalconfig-title")).toContainText(initialTitle);
+    await expect(page.getByTestId("generalconfig-site")).toContainText(initialTitle);
     await stop();
   });
 
@@ -244,6 +250,30 @@ test.describe("backup and restore", async () => {
     // verify backup was downloaded successfully
     const download = await downloadPromise;
     await expect(download.suggestedFilename()).toContain("evcc-backup");
+    await stop();
+  });
+});
+
+test.describe("backup in app context", async () => {
+  test("download backup dispatches GET event with X-Admin-Password header", async ({ page }) => {
+    await enableAppContext(page);
+    await start();
+    await page.goto("/#/config");
+
+    await page.getByRole("button", { name: "Backup & Restore" }).click();
+    const backupModal = page.getByTestId("backup-restore-modal");
+    await expectModalVisible(backupModal);
+
+    await backupModal.getByRole("button", { name: "Download backup..." }).click();
+    const backupConfirmModal = page.getByTestId("backup-restore-confirm-modal");
+    await expectModalVisible(backupConfirmModal);
+
+    await backupConfirmModal.getByRole("button", { name: "Download backup" }).click();
+    expect(await expectAppEvent(page)).toMatchObject({
+      type: "download",
+      url: expect.stringContaining("/api/db/backup"),
+      headers: { "X-Admin-Password": "" },
+    });
     await stop();
   });
 });

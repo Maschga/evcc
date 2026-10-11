@@ -27,10 +27,16 @@ params:
     default: 2.11 # kWh
   - name: minsoc
     default: 10
+    required: true
   - name: maxsoc
     default: 100
+    required: true
   - name: maxchargepower
     default: 1200
+    required: true
+  - name: maxdischargepower
+    default: 800
+    required: true
 render: |
   type: custom
   {{- if eq .usage "grid" }}
@@ -57,6 +63,9 @@ render: |
       address: 39123
       type: holding
       decode: int16
+    block: # 39123-39131
+      register: 39123
+      count: 9
     scale: 0.1
   - source: modbus
     {{- include "modbus" . | indent 2 }}
@@ -64,6 +73,9 @@ render: |
       address: 39124
       type: holding
       decode: int16
+    block: # 39123-39131
+      register: 39123
+      count: 9
     scale: 0.1
   - source: modbus
     {{- include "modbus" . | indent 2 }}
@@ -71,6 +83,9 @@ render: |
       address: 39125
       type: holding
       decode: int16
+    block: # 39123-39131
+      register: 39123
+      count: 9
     scale: 0.1
   currents:
   - source: modbus
@@ -79,6 +94,9 @@ render: |
       address: 39126
       type: holding
       decode: int32
+    block: # 39123-39131
+      register: 39123
+      count: 9
     scale: 0.001
   - source: modbus
     {{- include "modbus" . | indent 2 }}
@@ -86,6 +104,9 @@ render: |
       address: 39128
       type: holding
       decode: int32
+    block: # 39123-39131
+      register: 39123
+      count: 9
     scale: 0.001
   - source: modbus
     {{- include "modbus" . | indent 2 }}
@@ -93,6 +114,9 @@ render: |
       address: 39130
       type: holding
       decode: int32
+    block: # 39123-39131
+      register: 39123
+      count: 9
     scale: 0.001
   {{- end }}
   {{- if eq .usage "pv" }}
@@ -230,6 +254,37 @@ render: |
                 encoding: uint16
           - source: const
             value: {{ .maxchargepower }}
+            set:
+              source: modbus
+              {{- include "modbus" . | indent 12 }}
+              register:
+                address: 46003 # Remote Active Power
+                type: writemultiple
+                encoding: int32
+      - case: 5 # discharge - force battery discharge
+        set:
+          source: sequence
+          set:
+          - source: const
+            value: 5 # B01 0 1 //target:battery discharge
+            set:
+              source: modbus
+              {{- include "modbus" . | indent 12 }}
+              register:
+                address: 46001 # Remote Control Mode
+                type: writesingle
+                encoding: uint16
+          - source: const
+            value: 60 # Remote timeout 60 seconds
+            set:
+              source: modbus
+              {{- include "modbus" . | indent 12 }}
+              register:
+                address: 46002 # Remote Timeout Set
+                type: writesingle
+                encoding: uint16
+          - source: const
+            value: {{ .maxdischargepower }}
             set:
               source: modbus
               {{- include "modbus" . | indent 12 }}

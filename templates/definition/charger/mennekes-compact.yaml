@@ -4,13 +4,15 @@ products:
   - brand: Mennekes
     description:
       generic: AMTRON Compact 2.0s
+    capabilities: ["rfid"]
   - brand: Mennekes
     description:
       generic: AMTRON 4You 300
+    capabilities: ["rfid"]
   - brand: Kostal
     description:
       generic: Enector
-capabilities: ["1p3p", "mA"]
+capabilities: ["mA", "1p3p", "meter", "dim"]
 requirements:
   description:
     de: |
@@ -22,6 +24,8 @@ requirements:
       No external meter should be connected directly to the wallbox, as all functions are controlled directly by evcc.
       For Kostal systems with Smart Energy Meter (KSEM), the additional activation code (Solar Pure Mode / Solar Plus Mode) for the KSEM is *not* required.
   evcc: ["sponsorship"]
+discovery:
+  mac: ["7C70BC8"]
 params:
   - name: modbus
     choice: ["rs485"]

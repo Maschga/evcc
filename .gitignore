@@ -5,7 +5,9 @@ __debug_bin*
 .DS_store
 *.db
 *.gz
+!util/discovery/oui.txt.gz
 *.py
+testdata/**/*
 *.log
 *.json
 !i18n/*.json
@@ -17,6 +19,8 @@ __debug_bin*
 !assets/js/**/*.yaml
 !package*.json
 !evcc.dist.yaml
+!server/openapi.state.yaml
+!.coderabbit.yaml
 !tests/**/*.evcc.yaml
 !tests/**/*.tpl.yaml
 !tsconfig.json
@@ -48,3 +52,5 @@ asset-stats.html
 /evcc.db
 /tsconfig.tsbuildinfo
 *storybook.log
+/graphify-out/
+.graphifyignore

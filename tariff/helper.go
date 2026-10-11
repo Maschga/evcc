@@ -3,6 +3,7 @@ package tariff
 import (
 	"errors"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
@@ -48,24 +49,28 @@ func mergeRates(data *util.Monitor[api.Rates], new api.Rates) {
 
 // mergeRatesAfter blends new and existing rates, keeping existing rates after timestamp
 func mergeRatesAfter(data *util.Monitor[api.Rates], new api.Rates, now time.Time) {
+	data.SetFunc(func(old api.Rates) api.Rates {
+		return mergeAfter(old, new, now)
+	})
+}
+
+// mergeAfter keeps the old slots that end after now and before the new slots begin
+func mergeAfter(old, new api.Rates, now time.Time) api.Rates {
 	new.Sort()
 
 	var newStart time.Time
 	if len(new) > 0 {
-		new.Sort()
 		newStart = new[0].Start
 	}
 
-	data.SetFunc(func(old api.Rates) api.Rates {
-		var between api.Rates
-		for _, r := range old {
-			if (newStart.IsZero() || !r.End.After(newStart)) && r.End.After(now) {
-				between = append(between, r)
-			}
+	var between api.Rates
+	for _, r := range old {
+		if (newStart.IsZero() || !r.End.After(newStart)) && r.End.After(now) {
+			between = append(between, r)
 		}
+	}
 
-		return append(between, new...)
-	})
+	return append(between, new...)
 }
 
 // beginningOfDay returns the beginning of the current day
@@ -89,4 +94,20 @@ func runOrError[T any, I runnable[T]](t I) (*T, error) {
 	}
 
 	return t, nil
+}
+
+// reportError reports the first error to done via once and returns true when
+// this is the startup failure - i.e. run's first update failed and runOrError
+// is about to discard the tariff. The caller must then return so the goroutine
+// exits instead of polling the API forever in the background.
+//
+// Once a tariff has started successfully, once has already fired (with close),
+// so reportError is a no-op returning false and the caller keeps retrying
+// transient errors as before.
+func reportError(once *sync.Once, done chan<- error, err error) (startupFailed bool) {
+	once.Do(func() {
+		startupFailed = true
+		done <- err
+	})
+	return startupFailed
 }

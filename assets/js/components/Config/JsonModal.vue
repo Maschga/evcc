@@ -6,6 +6,8 @@
 		:title="title"
 		:size="size"
 		:config-modal-name="name"
+		:prevent-dismiss="!nothingChanged"
+		:autofocus="autofocus"
 		@open="open"
 	>
 		<p v-if="description || docsLink">
@@ -93,6 +95,7 @@ export default {
 		disableRemove: Boolean,
 		disableSave: Boolean,
 		noButtons: Boolean,
+		autofocus: { type: Boolean, default: true },
 		transformReadValues: Function,
 		transformWriteValues: Function,
 		stateKey: String,
@@ -166,7 +169,8 @@ export default {
 					if (shouldClose) {
 						await closeModal();
 					} else {
-						await this.load();
+						// keep open: saved values become the new baseline (no longer dirty)
+						this.serverValues = deepClone(this.values);
 					}
 				}
 				if (res.status === 400) {

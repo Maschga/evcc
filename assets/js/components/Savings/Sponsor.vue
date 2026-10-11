@@ -1,14 +1,12 @@
 <template>
-	<div v-if="isIndividual || isVictronDevice">
+	<div v-if="isIndividual || isHardware">
 		<p class="fw-bold mb-1 d-flex">
 			<shopicon-regular-heart
 				class="title-icon text-primary d-inline-block me-1"
 			></shopicon-regular-heart>
-			{{ $t(`footer.sponsor.${isVictronDevice ? "titleVictron" : "titleSponsor"}`) }}
+			{{ $t("footer.sponsor.titleSponsor") }}
 		</p>
-		<p class="mb-3">
-			{{ $t(`footer.sponsor.${isVictronDevice ? "victron" : "thanks"}`, { sponsor: name }) }}
-		</p>
+		<p class="mb-3">{{ $t("footer.sponsor.thanks", { sponsor: name }) }}</p>
 		<div
 			class="d-flex justify-content-center align-items-center flex-column flex-lg-row align-items-lg-baseline justify-content-lg-start"
 		>
@@ -22,15 +20,12 @@
 				{{ $t("footer.sponsor.confetti") }}
 			</button>
 			<a
-				v-if="isIndividual"
+				v-if="!isHardware"
 				href="https://evcc.io/sticker"
 				target="_blank"
 				class="small text-muted ms-lg-3"
 			>
 				{{ $t("footer.sponsor.sticker") }}
-			</a>
-			<a v-else :href="sponsorLink" target="_blank" class="small text-muted ms-lg-3">
-				{{ $t("footer.sponsor.becomeSponsorExtended") }}
 			</a>
 		</div>
 	</div>
@@ -66,12 +61,10 @@ import confetti from "canvas-confetti";
 import "@h2d2/shopicons/es/regular/heart";
 import "@h2d2/shopicons/es/regular/stars";
 import "@h2d2/shopicons/es/regular/clock";
-import { docsPrefix } from "@/i18n";
 import { defineComponent, type PropType } from "vue";
 import type { SponsorStatus } from "@/types/evcc";
 
 export const TRIAL = "trial";
-export const VICTRON_DEVICE = "victron";
 
 export default defineComponent({
 	name: "Sponsor",
@@ -85,14 +78,14 @@ export default defineComponent({
 		isTrial() {
 			return this.name === TRIAL;
 		},
-		isVictronDevice() {
-			return this.name === VICTRON_DEVICE;
+		isHardware() {
+			return !!this.status?.hardware;
 		},
 		isIndividual() {
-			return this.name && !this.isTrial && !this.isVictronDevice;
+			return this.name && !this.isTrial && !this.isHardware;
 		},
 		sponsorLink() {
-			return `${docsPrefix()}/docs/sponsorship`;
+			return "https://sponsor.evcc.io";
 		},
 	},
 	methods: {
@@ -135,6 +128,8 @@ export default defineComponent({
 </script>
 
 <style scoped>
+@import "../../../css/breakpoints.css";
+
 .title-icon {
 	transform: translateY(-2px);
 }
@@ -149,7 +144,7 @@ export default defineComponent({
 }
 
 /* breakpoint sm */
-@media (min-width: 576px) {
+@media (--sm-and-up) {
 	.confetti-button,
 	.become-sponsor {
 		width: 75%;
@@ -157,7 +152,7 @@ export default defineComponent({
 }
 
 /* breakpoint lg */
-@media (min-width: 992px) {
+@media (--lg-and-up) {
 	.confetti-button,
 	.become-sponsor {
 		width: 40%;

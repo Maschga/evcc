@@ -8,11 +8,12 @@ import (
 	"time"
 
 	"github.com/evcc-io/evcc/api"
+	"github.com/evcc-io/evcc/api/implement"
 	"github.com/evcc-io/evcc/charger/keba"
 	"github.com/evcc-io/evcc/util"
 )
 
-// https://www.keba.com/file/downloads/e-mobility/KeContact_P20_P30_UDP_ProgrGuide_en.pdf
+// https://www.keba.com/download/x/4aab015706/kecontactp30udp_pgen.pdf
 
 const (
 	udpTimeout = time.Second
@@ -20,6 +21,8 @@ const (
 
 // KebaUdp is an api.Charger implementation
 type KebaUdp struct {
+	implement.Caps
+	*embed
 	log     *util.Logger
 	conn    string
 	rfid    keba.RFID
@@ -32,11 +35,10 @@ func init() {
 	registry.Add("keba-udp", NewKebaUdpFromConfig)
 }
 
-//go:generate go tool decorate -f decorateKebaUdp -b *KebaUdp -r api.Charger -t api.Meter,api.MeterEnergy,api.PhaseCurrents
-
 // NewKebaUdpFromConfig creates a new Keba UDP charger
 func NewKebaUdpFromConfig(other map[string]any) (api.Charger, error) {
 	cc := struct {
+		embed   `mapstructure:",squash"`
 		URI     string
 		Serial  string
 		Timeout time.Duration
@@ -49,7 +51,7 @@ func NewKebaUdpFromConfig(other map[string]any) (api.Charger, error) {
 		return nil, err
 	}
 
-	k, err := NewKebaUdp(cc.URI, cc.Serial, cc.RFID, cc.Timeout)
+	k, err := NewKebaUdp(&cc.embed, cc.URI, cc.Serial, cc.RFID, cc.Timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -60,14 +62,16 @@ func NewKebaUdpFromConfig(other map[string]any) (api.Charger, error) {
 	}
 
 	if energy > 0 {
-		return decorateKebaUdp(k, k.currentPower, k.totalEnergy, k.currents), nil
+		implement.Has(k, implement.Meter(k.currentPower))
+		implement.Has(k, implement.MeterEnergy(k.totalEnergy))
+		implement.Has(k, implement.PhaseCurrents(k.currents))
 	}
 
 	return k, err
 }
 
 // NewKebaUdp creates a new charger
-func NewKebaUdp(uri, serial string, rfid keba.RFID, timeout time.Duration) (*KebaUdp, error) {
+func NewKebaUdp(embed *embed, uri, serial string, rfid keba.RFID, timeout time.Duration) (*KebaUdp, error) {
 	log := util.NewLogger("keba")
 
 	instance, err := keba.Instance(log)
@@ -80,6 +84,8 @@ func NewKebaUdp(uri, serial string, rfid keba.RFID, timeout time.Duration) (*Keb
 	sender, err := keba.NewSender(log, conn)
 
 	c := &KebaUdp{
+		Caps:    implement.New(),
+		embed:   embed,
 		log:     log,
 		conn:    conn,
 		rfid:    rfid,
@@ -147,7 +153,7 @@ func (c *KebaUdp) roundtrip(msg string, report int, res any) error {
 			if report == 0 {
 				// use reflection to write to simple string
 				rv := reflect.ValueOf(res)
-				if rv.Kind() != reflect.Ptr || rv.IsNil() || rv.Elem().Kind() != reflect.String {
+				if rv.Kind() != reflect.Pointer || rv.IsNil() || rv.Elem().Kind() != reflect.String {
 					return fmt.Errorf("invalid type: %s", reflect.TypeOf(res))
 				}
 
@@ -302,10 +308,10 @@ func (c *KebaUdp) currents() (float64, float64, float64, error) {
 var _ api.Identifier = (*KebaUdp)(nil)
 
 // Identify implements the api.Identifier interface
-func (c *KebaUdp) Identify() (string, error) {
+func (c *KebaUdp) Identify() ([]string, error) {
 	var kr keba.Report100
 	err := c.roundtrip("report", 100, &kr)
-	return kr.RFIDTag, err
+	return []string{kr.RFIDTag}, err
 }
 
 var _ api.Diagnosis = (*KebaUdp)(nil)

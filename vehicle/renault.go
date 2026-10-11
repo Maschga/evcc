@@ -14,7 +14,6 @@ import (
 
 // Credits to
 //  https://github.com/hacf-fr/renault-api
-//  https://github.com/edent/Renault-Zoe-API/issues/18
 //  https://github.com/epenet/Renault-Zoe-API/blob/newapimockup/Test/MyRenault.py
 //  https://github.com/jamesremuscat/pyze
 //  https://muscatoxblog.blogspot.com/2019/07/delving-into-renaults-new-api.html
@@ -27,6 +26,9 @@ type Renault struct {
 }
 
 func init() {
+	registry.Add("myalpine", func(other map[string]any) (api.Vehicle, error) {
+		return NewRenaultDaciaFromConfig("myalpine", other)
+	})
 	registry.Add("dacia", func(other map[string]any) (api.Vehicle, error) {
 		return NewRenaultDaciaFromConfig("dacia", other)
 	})

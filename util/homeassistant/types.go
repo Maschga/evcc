@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+type ServiceDomainResponse struct {
+	Domain   string         `json:"domain"`
+	Services map[string]any `json:"services"`
+}
+
 type StateResponse struct {
 	EntityId   string `json:"entity_id"`
 	State      string `json:"state"`
@@ -36,4 +41,18 @@ func (state StateResponse) scale() (float64, error) {
 		}
 	}
 	return 1, nil
+}
+
+// toCelsius converts a temperature value with the given Home Assistant unit to °C
+func toCelsius(value float64, unit string) (float64, error) {
+	switch unit {
+	case "", "°C":
+		return value, nil
+	case "°F":
+		return (value - 32) * 5 / 9, nil
+	case "K":
+		return value - 273.15, nil
+	default:
+		return 0, fmt.Errorf("invalid temperature unit '%s'", unit)
+	}
 }

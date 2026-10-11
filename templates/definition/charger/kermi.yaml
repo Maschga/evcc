@@ -6,18 +6,18 @@ products:
   - brand: Kermi
     description:
       generic: x-center pro
+capabilities: ["meter", "dim"]
 group: heating
 # requirements:
 #   evcc: ["sponsorship"]
 params:
-  - name: host
+  - name: modbus
+    choice: ["tcpip"]
   - name: tempsource
     type: choice
     choice: ["warmwater", "buffer"]
   - name: watchdog
-    type: duration
     default: 60s
-    advanced: true
 render: |
   type: heatpump
   setmaxpower:
@@ -25,7 +25,7 @@ render: |
     timeout: {{ .watchdog }} # re-write at timeout/2
     set:    
       source: modbus
-      uri: {{ .host }}:502
+      {{- include "modbus-connection" . | indent 4 }}
       id: 40 # WP
       register:
         address: 301 # PV Überschussleistung
@@ -34,8 +34,8 @@ render: |
       scale: 10.0
   power:
     source: modbus
-    uri: {{ .host }}:502
-    id: 40
+    {{- include "modbus-connection" . | indent 2 }}
+    id: 40 # WP
     register:
       address: 108
       type: holding
@@ -44,7 +44,7 @@ render: |
   {{- if eq .tempsource "warmwater" }}
   temp:
     source: modbus
-    uri: {{ .host }}:502
+    {{- include "modbus-connection" . | indent 2 }}
     id: 51 # TWE
     register:
       address: 100
@@ -53,7 +53,7 @@ render: |
     scale: 0.1
   limittemp:
     source: modbus
-    uri: {{ .host }}:502
+    {{- include "modbus-connection" . | indent 2 }}
     id: 51 # TWE
     register:
       address: 101
@@ -64,7 +64,7 @@ render: |
   {{- if eq .tempsource "buffer" }}
   temp:
     source: modbus
-    uri: {{ .host }}:502
+    {{- include "modbus-connection" . | indent 2 }}
     id: 50 # Speicher
     register:
       address: 1
@@ -73,7 +73,7 @@ render: |
     scale: 0.1
   limittemp:
     source: modbus
-    uri: {{ .host }}:502
+    {{- include "modbus-connection" . | indent 2 }}
     id: 50 # Speicher
     register:
       address: 2

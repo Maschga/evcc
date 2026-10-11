@@ -1,0 +1,29 @@
+template: static
+products:
+  - description:
+      en: Static circuit
+      de: Statischer Stromkreis
+params:
+  - name: maxcurrent
+    help:
+      de: Maximal erlaubte Stromstärke pro Phase in diesem Stromkreis.
+      en: Maximum current per phase allowed in this circuit.
+  - name: maxpower
+    description:
+      de: Maximale Leistung
+      en: Maximum power
+    help:
+      de: Maximal erlaubte Gesamtleistung in diesem Stromkreis.
+      en: Maximum total power allowed in this circuit.
+  - name: meter
+    # service: TODO
+  - name: parent
+    description:
+      de: Übergeordneter Stromkreis
+      en: Parent circuit
+render: |
+  type: custom
+  maxcurrent: {{ .maxcurrent }}
+  maxpower: {{ .maxpower }}
+  meter: {{ .meter }}
+  parent: {{ .parent }}

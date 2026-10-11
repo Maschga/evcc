@@ -35,6 +35,17 @@ render: |
       - 203:TotWhImp
       - 213:TotWhImp
     scale: 0.001
+  returnenergy:
+    source: sunspec
+    {{- include "modbus" . | indent 2 }}
+    value:
+      - 201:TotWhExp
+      - 211:TotWhExp
+      - 202:TotWhExp
+      - 212:TotWhExp
+      - 203:TotWhExp
+      - 213:TotWhExp
+    scale: 0.001
   currents:
     - source: sunspec
       {{- include "modbus" . | indent 4 }}
@@ -45,6 +56,7 @@ render: |
         - 212:AphA
         - 203:AphA
         - 213:AphA
+      nan: true
     - source: sunspec
       {{- include "modbus" . | indent 4 }}
       value:
@@ -54,6 +66,7 @@ render: |
         - 212:AphB
         - 203:AphB
         - 213:AphB
+      nan: true
     - source: sunspec
       {{- include "modbus" . | indent 4 }}
       value:
@@ -63,6 +76,7 @@ render: |
         - 212:AphC
         - 203:AphC
         - 213:AphC
+      nan: true
   voltages:
     - source: sunspec
       {{- include "modbus" . | indent 4 }}
@@ -73,6 +87,7 @@ render: |
         - 212:PhVphA
         - 203:PhVphA
         - 213:PhVphA
+      nan: true
     - source: sunspec
       {{- include "modbus" . | indent 4 }}
       value:
@@ -82,6 +97,7 @@ render: |
         - 212:PhVphB
         - 203:PhVphB
         - 213:PhVphB
+      nan: true
     - source: sunspec
       {{- include "modbus" . | indent 4 }}
       value:
@@ -91,6 +107,7 @@ render: |
         - 212:PhVphC
         - 203:PhVphC
         - 213:PhVphC
+      nan: true
   powers:
     - source: sunspec
       {{- include "modbus" . | indent 4 }}
@@ -101,6 +118,7 @@ render: |
         - 212:WphA
         - 203:WphA
         - 213:WphA
+      nan: true
     - source: sunspec
       {{- include "modbus" . | indent 4 }}
       value:
@@ -110,6 +128,7 @@ render: |
         - 212:WphB
         - 203:WphB
         - 213:WphB
+      nan: true
     - source: sunspec
       {{- include "modbus" . | indent 4 }}
       value:
@@ -119,6 +138,7 @@ render: |
         - 212:WphC
         - 203:WphC
         - 213:WphC
+      nan: true
   {{- end }}
   {{- if eq .usage "pv" }}
   power:
@@ -142,6 +162,7 @@ render: |
       - 103:WH
       - 113:WH
     scale: 0.001
+  {{- include "sunspec-maxacpower" . }}
   {{- end }}
   {{- if eq .usage "battery" }}
   power:

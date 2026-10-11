@@ -12,3 +12,17 @@
 - **Source**: https://github.com/H2D2-Design/h2d2-shopicons
 - **License**: Apache License 2.0
 - **Usage**: Regular dependency
+
+## Octicons
+
+- **Source**: https://github.com/primer/octicons
+- **License**: MIT License
+- **Files**: /assets/js/components/MaterialIcon/Mcp.vue
+- **Notes**: Repackaged as Vue components
+
+## Tabler Icons
+
+- **Source**: https://github.com/tabler/tabler-icons
+- **License**: MIT License
+- **Files**: /assets/js/components/MaterialIcon/Sankey.vue, /assets/js/components/MaterialIcon/Plug.vue, /assets/js/components/MaterialIcon/Treemap.vue
+- **Notes**: Repackaged as Vue component

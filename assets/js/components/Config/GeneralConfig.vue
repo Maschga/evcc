@@ -1,18 +1,18 @@
 <template>
 	<div class="group round-box p-4">
 		<GeneralConfigEntry
-			test-id="generalconfig-title"
-			:label="$t('config.general.title')"
-			:text="title || '---'"
-			@edit="openModal('title')"
-		>
-		</GeneralConfigEntry>
+			test-id="generalconfig-site"
+			:label="$t('config.general.site')"
+			:text="siteStatus"
+			@edit="openModal('site')"
+		/>
+		<SiteModal @changed="$emit('site-changed')" />
 
 		<GeneralConfigEntry
-			test-id="generalconfig-password"
-			:label="$t('config.general.password')"
-			text="*******"
-			@edit="openModal('passwordupdate')"
+			test-id="generalconfig-security"
+			:label="$t('config.security.title')"
+			:text="$t(`config.general.${authDisabled ? 'off' : 'on'}`)"
+			@edit="openModal('security')"
 		/>
 
 		<GeneralConfigEntry
@@ -62,6 +62,7 @@
 </template>
 
 <script>
+import SiteModal from "./SiteModal.vue";
 import GeneralConfigEntry from "./GeneralConfigEntry.vue";
 import { openModal } from "@/configModal";
 import store from "@/store";
@@ -69,7 +70,7 @@ import formatter from "@/mixins/formatter";
 
 export default {
 	name: "GeneralConfig",
-	components: { GeneralConfigEntry },
+	components: { SiteModal, GeneralConfigEntry },
 	mixins: [formatter],
 	props: {
 		sponsorError: Boolean,
@@ -77,8 +78,11 @@ export default {
 	},
 	emits: ["site-changed"],
 	computed: {
-		title() {
-			return store.state?.siteTitle || "";
+		authDisabled() {
+			return store.state?.authDisabled === true;
+		},
+		siteStatus() {
+			return store.state?.siteTitle || "---";
 		},
 		telemetryEnabled() {
 			return store.state?.telemetry === true;

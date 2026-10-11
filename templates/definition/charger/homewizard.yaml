@@ -1,10 +1,15 @@
 template: homewizard
 products:
   - brand: HomeWizard
+capabilities: ["meter"]
 group: switchsockets
+discovery:
+  mdns: ["_hwenergy._tcp", "_homewizard._tcp"]
+  mac: ["5C2FAF", "3C39E72"]
 params:
   - name: host
   - preset: switchsocket
 render: |
   type: homewizard
   uri: http://{{ .host }}
+  {{ include "switchsocket" . }}

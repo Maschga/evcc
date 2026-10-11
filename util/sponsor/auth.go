@@ -19,13 +19,18 @@ package sponsor
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/evcc-io/evcc/api/proto/pb"
 	"github.com/evcc-io/evcc/util/cloud"
+	"github.com/evcc-io/evcc/util/machine"
+	"github.com/golang-jwt/jwt/v5"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -34,12 +39,17 @@ var (
 	mu             sync.RWMutex
 	Subject, Token string
 	ExpiresAt      time.Time
+	Hardware       bool // sponsored via hardware check
 )
 
-const (
-	unavailable = "sponsorship unavailable"
-	victron     = "victron"
-)
+func machineID() string {
+	return machine.ProtectedID("evcc-sponsor")
+}
+
+const unavailable = "sponsorship unavailable"
+
+// startupTimeout leaves the network time to settle at boot; grpc retries dialing with backoff until deadline
+const startupTimeout = 30 * time.Second
 
 func IsAuthorized() bool {
 	mu.RLock()
@@ -50,7 +60,7 @@ func IsAuthorized() bool {
 func IsAuthorizedForApi() bool {
 	mu.RLock()
 	defer mu.RUnlock()
-	return IsAuthorized() && Subject != unavailable && Token != ""
+	return len(Subject) > 0 && Subject != unavailable && Token != ""
 }
 
 // check and set sponsorship token
@@ -58,19 +68,37 @@ func ConfigureSponsorship(token string) error {
 	mu.Lock()
 	defer mu.Unlock()
 
+	Hardware = false
+
 	if token == "" {
-		if sub := checkVictron(); sub != "" {
-			Subject = sub
-			return nil
+		var sub string
+		if sub, token = checkVictron(); sub == "" && os.Getenv("HEMSPRO") != "" {
+			sub, token = checkHemsPro()
 		}
 
-		var err error
-		if token, err = readSerial(); token == "" || err != nil {
-			return err
+		Hardware = sub != "" && sub != unavailable
+
+		if token == "" {
+			if sub != "" {
+				Subject = sub
+				return nil
+			}
+
+			var err error
+			if token, err = checkPulsares(); token == "" || err != nil {
+				return err
+			}
 		}
 	}
 
 	Token = token
+
+	// check expiry locally to avoid cloud roundtrip
+	var claims jwt.RegisteredClaims
+	if _, _, err := jwt.NewParser().ParseUnverified(token, &claims); err == nil &&
+		claims.ExpiresAt != nil && claims.ExpiresAt.Before(time.Now()) {
+		return errors.New("token is expired - get a fresh one from https://sponsor.evcc.io")
+	}
 
 	conn, err := cloud.Connection()
 	if err != nil {
@@ -79,10 +107,10 @@ func ConfigureSponsorship(token string) error {
 
 	client := pb.NewAuthClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), startupTimeout)
 	defer cancel()
 
-	res, err := client.IsAuthorized(ctx, &pb.AuthRequest{Token: token})
+	res, err := client.IsAuthorized(ctx, &pb.AuthRequest{Token: token, MachineId: machineID()}, grpc.WaitForReady(true))
 	if err == nil && res.Authorized {
 		Subject = res.Subject
 		ExpiresAt = res.ExpiresAt.AsTime()
@@ -114,9 +142,10 @@ func redactToken(token string) string {
 
 type Status struct {
 	Name        string    `json:"name"`
-	ExpiresAt   time.Time `json:"expiresAt,omitempty"`
+	ExpiresAt   time.Time `json:"expiresAt"`
 	ExpiresSoon bool      `json:"expiresSoon,omitempty"`
 	Token       string    `json:"token,omitempty"`
+	Hardware    bool      `json:"hardware,omitempty"`
 }
 
 // RedactedStatus returns the sponsorship status
@@ -124,8 +153,9 @@ func RedactedStatus() Status {
 	mu.RLock()
 	defer mu.RUnlock()
 
+	// hardware tokens are renewed on every start, no expiry warning
 	var expiresSoon bool
-	if d := time.Until(ExpiresAt); d < 30*24*time.Hour && d > 0 {
+	if d := time.Until(ExpiresAt); d < 30*24*time.Hour && d > 0 && !Hardware {
 		expiresSoon = true
 	}
 
@@ -134,5 +164,6 @@ func RedactedStatus() Status {
 		ExpiresAt:   ExpiresAt,
 		ExpiresSoon: expiresSoon,
 		Token:       redactToken(Token),
+		Hardware:    Hardware,
 	}
 }

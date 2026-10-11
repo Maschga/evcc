@@ -2,6 +2,7 @@ package tariff
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 )
 
 type Fixed struct {
+	*embed
 	clock   clock.Clock
 	zones   fixed.Zones
 	dynamic bool
@@ -26,55 +28,29 @@ func init() {
 
 func NewFixedFromConfig(other map[string]any) (api.Tariff, error) {
 	var cc struct {
+		embed `mapstructure:",squash"`
 		Price float64
-		Zones []struct {
-			Price               float64
-			Days, Hours, Months string
-		}
+		Zones []fixed.ZoneSpec
 	}
 
 	if err := util.DecodeOther(other, &cc); err != nil {
 		return nil, err
 	}
 
-	t := &Fixed{
-		clock:   clock.New(),
-		dynamic: len(cc.Zones) >= 1,
+	if err := cc.embed.init(); err != nil {
+		return nil, err
 	}
 
-	for _, z := range cc.Zones {
-		days, err := fixed.ParseDays(z.Days)
-		if err != nil {
-			return nil, err
-		}
+	zones, err := fixed.ParseZones(cc.Zones)
+	if err != nil {
+		return nil, err
+	}
 
-		months, err := fixed.ParseMonths(z.Months)
-		if err != nil {
-			return nil, err
-		}
-
-		hours, err := fixed.ParseTimeRanges(z.Hours)
-		if err != nil && z.Hours != "" {
-			return nil, err
-		}
-
-		if len(hours) == 0 {
-			t.zones = append(t.zones, fixed.Zone{
-				Price:  z.Price,
-				Days:   days,
-				Months: months,
-			})
-			continue
-		}
-
-		for _, h := range hours {
-			t.zones = append(t.zones, fixed.Zone{
-				Price:  z.Price,
-				Days:   days,
-				Months: months,
-				Hours:  h,
-			})
-		}
+	t := &Fixed{
+		embed:   &cc.embed,
+		clock:   clock.New(),
+		dynamic: len(cc.Zones) >= 1 || len(cc.ChargesZones_) >= 1,
+		zones:   zones,
 	}
 
 	sort.Sort(t.zones)
@@ -91,7 +67,7 @@ func NewFixedFromConfig(other map[string]any) (api.Tariff, error) {
 func (t *Fixed) Rates() (api.Rates, error) {
 	var res api.Rates
 
-	start := now.With(t.clock.Now().Local()).BeginningOfDay()
+	start := now.With(t.clock.Now()).BeginningOfDay()
 	for i := range 7 {
 		dayStart := start.AddDate(0, 0, i)
 		dow := fixed.Day((int(start.Weekday()) + i) % 7)
@@ -102,7 +78,8 @@ func (t *Fixed) Rates() (api.Rates, error) {
 			return nil, fmt.Errorf("no zones for weekday %d", dow)
 		}
 
-		markers := zones.TimeTableMarkers()
+		// include chargesZones boundaries so rate changes there are not swallowed by the coarser price zone markers
+		markers := append(slices.Clone(zones), t.chargesZones.ForDayAndMonth(dow, month)...).TimeTableMarkers()
 
 		for i, m := range markers {
 			ts := dayStart.Add(time.Minute * time.Duration(m.Minutes()))
@@ -125,10 +102,15 @@ func (t *Fixed) Rates() (api.Rates, error) {
 				end = dayStart.Add(time.Minute * time.Duration(markers[i+1].Minutes()))
 			}
 
+			// dst spring forward: last marker coincides with end of day
+			if !end.After(ts) {
+				continue
+			}
+
 			rate := api.Rate{
 				Start: ts,
 				End:   end,
-				Value: zone.Price,
+				Value: t.totalPrice(zone.Price, ts),
 			}
 
 			res = append(res, rate)

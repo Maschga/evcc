@@ -61,10 +61,20 @@ import { DEFAULT_LOCALE } from "@/i18n.ts";
 import formatter from "@/mixins/formatter";
 import minuteTicker from "@/mixins/minuteTicker";
 import { defineComponent, type PropType } from "vue";
-import { SMART_COST_TYPE, type CURRENCY, type VehicleStatus, type Timeout } from "@/types/evcc";
+import {
+	CHARGE_MODE,
+	SMART_COST_TYPE,
+	type CURRENCY,
+	type LoadpointSuggestion,
+	type VehicleStatus,
+	type Timeout,
+} from "@/types/evcc";
 
 import ClimaterIcon from "../MaterialIcon/Climater.vue";
 import DynamicPriceIcon from "../MaterialIcon/DynamicPrice.vue";
+import OptimizerAutoIcon from "../MaterialIcon/OptimizerAuto.vue";
+import OptimizerChargeIcon from "../MaterialIcon/OptimizerCharge.vue";
+import OptimizerPauseIcon from "../MaterialIcon/OptimizerPause.vue";
 import PlanEndIcon from "../MaterialIcon/PlanEnd.vue";
 import PlanStartIcon from "../MaterialIcon/PlanStart.vue";
 import ReconnectIcon from "../MaterialIcon/Reconnect.vue";
@@ -72,6 +82,7 @@ import RfidWaitIcon from "../MaterialIcon/RfidWait.vue";
 import SunDownIcon from "../MaterialIcon/SunDown.vue";
 import SunUpIcon from "../MaterialIcon/SunUp.vue";
 import TempLimitIcon from "../MaterialIcon/TempLimit.vue";
+import MinTempIcon from "../MaterialIcon/MinTemp.vue";
 import VehicleLimitIcon from "../MaterialIcon/VehicleLimit.vue";
 import VehicleLimitReachedIcon from "../MaterialIcon/VehicleLimitReached.vue";
 import VehicleLimitWarningIcon from "../MaterialIcon/VehicleLimitWarning.vue";
@@ -104,7 +115,11 @@ export default defineComponent({
 		effectivePlanTime: String,
 		enabled: Boolean,
 		heating: Boolean,
+		continuous: Boolean,
 		minSoc: { type: Number, default: 0 },
+		minSocNotReached: Boolean,
+		mode: String as PropType<CHARGE_MODE>,
+		optimizerControlled: Boolean,
 		phaseAction: { type: String, default: "" },
 		phaseRemainingInterpolated: Number,
 		planActive: Boolean,
@@ -123,6 +138,7 @@ export default defineComponent({
 		smartFeedInPriorityDisabled: Boolean,
 		smartFeedInPriorityLimit: { type: Number, default: null },
 		smartFeedInPriorityNextStart: String,
+		suggestion: Object as PropType<LoadpointSuggestion | null>,
 		tariffCo2: { type: Number, default: 0 },
 		tariffGrid: { type: Number, default: 0 },
 		tariffFeedIn: { type: Number, default: 0 },
@@ -164,6 +180,12 @@ export default defineComponent({
 		vehicleLimitWarning() {
 			return this.effectivePlanSoc > this.vehicleLimitSoc;
 		},
+		showSuggestions(): boolean {
+			return this.connected && Boolean(this.suggestion?.actionable) && !this.optimizerGating;
+		},
+		optimizerGating(): boolean {
+			return this.optimizerControlled && this.mode === CHARGE_MODE.SMART;
+		},
 		smartCostPrice() {
 			return this.smartCostType !== SMART_COST_TYPE.CO2;
 		},
@@ -201,29 +223,19 @@ export default defineComponent({
 			if (this.statusOverrideActive && this.statusOverride) {
 				return this.statusOverride.message;
 			}
-			const t = (key: string) => {
-				if (this.heating) {
-					// check for special heating status translation
-					const name = `main.heatingStatus.${key}`;
-					if (this.$te(name, DEFAULT_LOCALE)) {
-						return this.$t(name);
-					}
-				}
-				return this.$t(`main.vehicleStatus.${key}`);
-			};
+			const t = (key: string) => this.translateStatus(key);
 
-			if (!this.connected) {
-				return t("disconnected");
-			}
+			if (!this.connected) return t("disconnected");
 
 			if (this.enabled && !this.charging) {
-				if (this.vehicleLimitReached) {
-					return t("finished");
-				}
+				if (this.vehicleLimitReached) return t("finished");
+				if (this.chargerStatusReason === REASON_AUTH) return t("waitForAuthorization");
 				return t("waitForVehicle");
 			}
 
 			if (this.charging) {
+				// continuous devices may run without enable - show normal operation
+				if (this.continuous && !this.enabled) return t("connected");
 				return t("charging");
 			}
 
@@ -257,6 +269,26 @@ export default defineComponent({
 					tabular: true,
 				},
 				{
+					id: "minSoc",
+					visible: this.connected && this.minSocNotReached,
+					content: this.heating
+						? this.fmtTemperature(this.minSoc)
+						: this.fmtPercentage(this.minSoc),
+					tooltipContent: this.heating
+						? this.$t("main.heatingStatus.minTemp", {
+								temp: this.fmtTemperature(this.minSoc),
+							})
+						: t("minCharge", {
+								soc: this.fmtPercentage(this.minSoc),
+							}),
+					iconComponent: this.heating ? MinTempIcon : VehicleMinSocIcon,
+					itemClass: "text-danger text-decoration-underline",
+					testId: "vehicle-status-minsoc",
+					clickable: true,
+					clickHandler: () =>
+						this.heating ? this.openLoadpointSettings() : this.openMinSocSettings(),
+				},
+				{
 					id: "tempLimit",
 					visible: this.heating && this.vehicleLimitSoc > 0,
 					content: this.fmtTemperature(this.vehicleLimitSoc),
@@ -265,27 +297,9 @@ export default defineComponent({
 					testId: "vehicle-status-limit",
 				},
 				{
-					id: "minSoc",
-					visible:
-						!this.heating &&
-						this.connected &&
-						this.minSoc > 0 &&
-						this.vehicleSoc < this.minSoc,
-					content: this.fmtPercentage(this.minSoc),
-					tooltipContent: t("minCharge", {
-						soc: this.fmtPercentage(this.minSoc),
-					}),
-					iconComponent: VehicleMinSocIcon,
-					itemClass: "text-danger text-decoration-underline",
-					testId: "vehicle-status-minsoc",
-					clickable: true,
-					clickHandler: () => this.openMinSocSettings(),
-				},
-				{
 					id: "vehicleLimit",
 					visible:
 						!this.heating &&
-						this.connected &&
 						this.vehicleLimitSoc > 0 &&
 						this.vehicleLimitSoc < (this.effectiveLimitSoc || 100),
 					content: this.fmtPercentage(this.vehicleLimitSoc),
@@ -335,7 +349,7 @@ export default defineComponent({
 				},
 				{
 					id: "smartCost",
-					visible: this.smartCostLimit !== null,
+					visible: this.smartCostLimit !== null && !this.optimizerControlled,
 					tooltipContent: this.getSmartCostTooltip(),
 					iconComponent: this.smartCostPrice ? DynamicPriceIcon : "shopicon-regular-eco1",
 					itemClass: this.smartCostDisabled
@@ -360,6 +374,31 @@ export default defineComponent({
 					testId: "vehicle-status-smartfeedinpriority",
 					clickable: true,
 					clickHandler: () => this.openLoadpointSettings(),
+				},
+				{
+					id: "suggestion",
+					visible: this.showSuggestions,
+					tooltipContent: this.translateStatus(
+						this.suggestion?.action === "charge"
+							? "suggestionStartTooltip"
+							: "suggestionStopTooltip"
+					),
+					iconComponent:
+						this.suggestion?.action === "charge"
+							? OptimizerChargeIcon
+							: OptimizerPauseIcon,
+					testId: "vehicle-status-suggestion",
+					clickable: true,
+					clickHandler: () => this.$router.push("/optimize"),
+				},
+				{
+					id: "optimizerControlled",
+					visible: this.connected && this.optimizerGating,
+					tooltipContent: this.translateStatus("optimizerControlledTooltip"),
+					iconComponent: OptimizerAutoIcon,
+					testId: "vehicle-status-optimizer-controlled",
+					clickable: true,
+					clickHandler: () => this.$router.push("/optimize"),
 				},
 				{
 					id: "planActive",
@@ -419,6 +458,18 @@ export default defineComponent({
 		if (this.statusTimeout) clearTimeout(this.statusTimeout);
 	},
 	methods: {
+		translateStatus(key: string) {
+			// priority: continuous > heating > vehicle (default)
+			if (this.continuous) {
+				const k = `main.continuousStatus.${key}`;
+				if (this.$te(k, DEFAULT_LOCALE)) return this.$t(k);
+			}
+			if (this.heating) {
+				const k = `main.heatingStatus.${key}`;
+				if (this.$te(k, DEFAULT_LOCALE)) return this.$t(k);
+			}
+			return this.$t(`main.vehicleStatus.${key}`);
+		},
 		openLoadpointSettings() {
 			this.$emit("open-loadpoint-settings");
 		},

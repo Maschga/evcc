@@ -1,6 +1,6 @@
-<!-- eslint-disable vue/no-v-html -->
+<!-- oxlint-disable vue/no-v-html -->
 <template>
-	<div class="mb-4">
+	<div class="form-row">
 		<label :for="id">
 			<div class="form-label">
 				{{ label }}
@@ -16,6 +16,9 @@
 			<slot />
 		</div>
 		<div v-if="error" class="invalid-feedback d-block">{{ error }}</div>
+		<div v-if="warning" class="form-text text-warning mt-1" role="status">
+			{{ warning }}
+		</div>
 		<div class="form-text evcc-gray">
 			<div v-if="example" class="hyphenate">
 				{{ $t("config.form.example") }}: {{ example }}
@@ -47,6 +50,7 @@ export default {
 		optional: Boolean,
 		deprecated: Boolean,
 		error: String,
+		warning: String,
 		danger: String,
 		example: String,
 		docsLink: String,
@@ -58,3 +62,8 @@ export default {
 	},
 };
 </script>
+<style scoped>
+.form-row {
+	margin-bottom: 1.5rem;
+}
+</style>

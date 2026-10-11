@@ -87,6 +87,59 @@ test.describe("modbusproxy", async () => {
     await expect(modal).not.toContainText("Connection #1");
   });
 
+  test("modbusproxy serial defaults", async ({ page }) => {
+    await start();
+    await page.goto("/#/config");
+
+    const modbusproxyCard = page.getByTestId("modbusproxy");
+    await modbusproxyCard.getByRole("button", { name: "edit" }).click();
+    const modal = page.getByTestId("modbusproxy-modal");
+    await expectModalVisible(modal);
+
+    await modal.getByRole("button", { name: "Add proxy connection" }).click();
+    const deviceBox = modal.getByTestId("device-box");
+
+    await expect(deviceBox.getByLabel("Network")).toBeChecked();
+    await expect(deviceBox.getByLabel("Port")).toHaveValue("502");
+
+    // switch to RS485
+    await deviceBox.getByText("RS485", { exact: true }).click();
+    await expect(deviceBox.getByLabel("Baud rate")).toHaveValue("9600");
+    await expect(deviceBox.getByLabel("ComSet")).toHaveValue("8N1");
+
+    await deviceBox.getByLabel("Baud rate").selectOption("19200");
+
+    // switch to Network and back: defaults restored
+    await deviceBox.getByText("Network").click();
+    await deviceBox.getByText("RS485", { exact: true }).click();
+    await expect(deviceBox.getByLabel("Baud rate")).toHaveValue("9600");
+    await expect(deviceBox.getByLabel("ComSet")).toHaveValue("8N1");
+  });
+
+  test("modbusproxy keeps default device port after serial round-trip", async ({ page }) => {
+    await start();
+    await page.goto("/#/config");
+
+    await page.getByTestId("modbusproxy").getByRole("button", { name: "edit" }).click();
+    const modal = page.getByTestId("modbusproxy-modal");
+    await expectModalVisible(modal);
+
+    await modal.getByRole("button", { name: "Add proxy connection" }).click();
+    const deviceBox = modal.getByTestId("device-box");
+
+    await deviceBox.getByText("RS485", { exact: true }).click();
+    await deviceBox.getByText("Network").click();
+    await deviceBox.getByLabel("IP address or hostname").fill("127.0.0.1");
+    await expect(deviceBox.getByLabel("Port")).toHaveValue("502");
+
+    const requestPromise = page.waitForRequest(
+      (req) => req.url().includes("/api/config/modbusproxy") && req.method() === "POST"
+    );
+    await modal.getByRole("button", { name: "Save" }).click();
+    const body = (await requestPromise).postDataJSON();
+    expect(body[0].settings.uri).toBe("127.0.0.1:502");
+  });
+
   test("modbusproxy via db (yaml to json migration)", async ({ page }) => {
     await start(undefined, CONFIG_MODBUSPROXY_MIGRATE);
     await page.goto("/#/config");

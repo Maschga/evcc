@@ -1,6 +1,6 @@
 <template>
 	<div class="root safe-area-inset">
-		<div class="container d-flex h-100 flex-column px-0 pb-4">
+		<div class="container d-flex h-100 flex-column px-0 pb-0 pb-md-3">
 			<TopHeader :title="$t('log.title')" class="mx-4" />
 			<div class="logs d-flex flex-column overflow-hidden flex-grow-1 px-4 mx-2 mx-sm-4">
 				<div class="flex-grow-0 row py-4">
@@ -15,11 +15,11 @@
 								<span class="text-nowrap text-truncate">
 									{{ $t("log.update") }}
 								</span>
-								<Record
+								<ProgressRing
 									v-if="autoFollow"
-									ref="spin"
-									class="spin flex-shrink-0"
-									:style="{ animationDuration: `${updateInterval}ms` }"
+									:key="tick"
+									class="flex-shrink-0"
+									:duration="updateInterval"
 								/>
 								<Play v-else class="flex-shrink-0 play" />
 							</button>
@@ -28,6 +28,7 @@
 								:aria-label="$t('log.download')"
 								:href="downloadUrl"
 								download
+								@click="handleDownloadClick($event, downloadUrl)"
 							>
 								<shopicon-regular-download
 									size="s"
@@ -38,7 +39,8 @@
 					</div>
 					<div class="col-6 offset-lg-1 col-lg-4 mb-4 mb-lg-0">
 						<input
-							v-model="search"
+							:value="q"
+							@input="changeSearch"
 							type="search"
 							class="form-control search"
 							:placeholder="$t('log.search')"
@@ -60,6 +62,7 @@
 					<div class="filterAreas col-6 col-lg-2">
 						<MultiSelect
 							id="logAreasSelect"
+							isTopLevel
 							:modelValue="areas"
 							:options="areaOptions"
 							:selectAllLabel="$t('log.selectAll')"
@@ -110,13 +113,14 @@
 import "@h2d2/shopicons/es/regular/download";
 import Header from "../components/Top/Header.vue";
 import Play from "../components/MaterialIcon/Play.vue";
-import Record from "../components/MaterialIcon/Record.vue";
+import ProgressRing from "../components/MaterialIcon/ProgressRing.vue";
 import MultiSelect from "../components/Helper/MultiSelect.vue";
 import api from "../api";
 import store from "../store";
 import { defineComponent, type PropType } from "vue";
 import type { Timeout } from "@/types/evcc";
 import { LOG_LEVELS, DEFAULT_LOG_LEVEL } from "@/utils/log";
+import { handleDownloadClick } from "@/utils/native";
 const DEFAULT_COUNT = 1000;
 
 const levelMatcher = new RegExp(`\\[.*?\\] (${LOG_LEVELS.map((l) => l.toUpperCase()).join("|")})`);
@@ -126,21 +130,22 @@ export default defineComponent({
 	components: {
 		TopHeader: Header,
 		Play,
-		Record,
+		ProgressRing,
 		MultiSelect,
 	},
 	props: {
 		areas: { type: Array as PropType<string[]>, default: () => [] },
 		level: { type: String, default: DEFAULT_LOG_LEVEL },
+		q: { type: String, default: "" },
 	},
 	data() {
 		return {
 			lines: [] as string[],
 			availableAreas: [] as string[],
-			search: "",
 			timeout: null as Timeout,
 			levels: LOG_LEVELS,
 			busy: false,
+			tick: 0,
 		};
 	},
 	head() {
@@ -149,8 +154,7 @@ export default defineComponent({
 	computed: {
 		filteredLines() {
 			return this.lines.filter(
-				(line) =>
-					!this.search || line.toLowerCase().includes(this.search.toLocaleLowerCase())
+				(line) => !this.q || line.toLowerCase().includes(this.q.toLocaleLowerCase())
 			);
 		},
 		lineEntries() {
@@ -169,7 +173,10 @@ export default defineComponent({
 			});
 		},
 		areaOptions() {
-			return this.availableAreas.map((area) => ({ name: area, value: area }));
+			return this.availableAreas
+				.slice()
+				.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+				.map((area) => ({ name: area, value: area }));
 		},
 		areasLabel() {
 			if (this.areas.length === 0) {
@@ -217,10 +224,12 @@ export default defineComponent({
 		this.stopInterval();
 	},
 	methods: {
+		handleDownloadClick,
 		async updateLogs(showAll: boolean = false) {
 			// prevent concurrent requests
 			if (this.busy) return;
 
+			this.tick++;
 			try {
 				this.busy = true;
 				const response = await api.get("/system/log", {
@@ -287,15 +296,24 @@ export default defineComponent({
 				this.startInterval();
 			}
 		},
-		updateQuery({ level: l, areas: a }: { level?: string; areas?: string[] }) {
+		updateQuery(
+			{ level: l, areas: a, q: s }: { level?: string; areas?: string[]; q?: string },
+			replace = false
+		) {
 			const newLevel = l || this.level;
 			const newAreas = a || this.areas;
+			const newSearch = s ?? this.q;
 
 			// reset to default level
 			const level = newLevel === DEFAULT_LOG_LEVEL ? undefined : newLevel;
 			const areas = newAreas.length ? newAreas.join(",") : undefined;
+			const q = newSearch || undefined;
 
-			this.$router.push({ query: { level, areas } });
+			// typing shouldn't spam the history
+			this.$router[replace ? "replace" : "push"]({ query: { level, areas, q } });
+		},
+		changeSearch(event: Event) {
+			this.updateQuery({ q: (event.target as HTMLInputElement).value }, true);
 		},
 		changeLevel(event: Event) {
 			this.updateQuery({ level: (event.target as HTMLSelectElement).value });
@@ -326,17 +344,6 @@ export default defineComponent({
 }
 .play {
 	transform: scale(1.2);
-}
-.spin {
-	animation: rotation 3s infinite ease-in-out;
-}
-@keyframes rotation {
-	from {
-		transform: rotate(0deg) scale(1, -1);
-	}
-	to {
-		transform: rotate(1440deg) scale(1, -1);
-	}
 }
 @keyframes fadeIn {
 	from {

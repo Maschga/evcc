@@ -13,11 +13,10 @@ params:
     choice: ["rs485", "tcpip"]
     baudrate: 115200
     comset: 8N1
+  - preset: battery-params
   # battery control
   - name: defaultmode
     default: 2
-    advanced: true
-  - preset: battery-params
 render: |
   type: custom
   {{- if eq .usage "grid" }}

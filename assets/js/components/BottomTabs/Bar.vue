@@ -1,0 +1,135 @@
+<template>
+	<nav
+		class="bottom-tab-bar d-flex position-fixed start-0 end-0 bottom-0"
+		:class="{ 'bottom-tab-bar--hidden': hidden }"
+		data-testid="bottom-tab-bar"
+	>
+		<div class="container d-flex align-items-stretch px-0">
+			<Item to="/" :label="$t('tabBar.charge')" exact>
+				<shopicon-regular-lightning class="tab-icon"></shopicon-regular-lightning>
+			</Item>
+
+			<Item v-if="batteryConfigured" to="/battery" :label="$t('tabBar.battery')">
+				<BatteryIcon class="tab-icon" :soc="batterySoc || 0" :mode="batteryMode" />
+			</Item>
+
+			<Item to="/forecast" :label="$t('tabBar.forecast')">
+				<ForecastGraphIcon class="tab-icon" />
+			</Item>
+
+			<Item v-if="experimental" to="/energy" :label="$t('tabBar.energy')">
+				<SankeyIcon class="tab-icon" />
+			</Item>
+
+			<!-- six tabs do not fit a phone, sessions moves into the more menu there -->
+			<Item
+				to="/sessions"
+				:label="$t('tabBar.sessions')"
+				:class="{ 'd-none d-sm-flex': experimental }"
+			>
+				<SessionsIcon class="tab-icon" />
+			</Item>
+
+			<MoreItem
+				:active="moreActive"
+				:vehicles="vehicles"
+				:auth-providers="authProviders"
+				:sponsor="sponsor"
+				:fatal="fatal"
+				:experimental="experimental"
+				:auth-disabled="authDisabled"
+				:optimizer="optimizer"
+				:installed="installed"
+				:available-version="availableVersion"
+				:custom-brand="customBrand"
+			/>
+		</div>
+	</nav>
+</template>
+
+<script lang="ts">
+import "@h2d2/shopicons/es/regular/lightning";
+import ForecastGraphIcon from "../MaterialIcon/ForecastGraph.vue";
+import SessionsIcon from "../MaterialIcon/Sessions.vue";
+import SankeyIcon from "../MaterialIcon/Sankey.vue";
+import BatteryIcon from "../Energyflow/BatteryIcon.vue";
+import Item from "./Item.vue";
+import MoreItem from "./MoreItem.vue";
+import { defineComponent, type PropType } from "vue";
+import {
+	BATTERY_MODE,
+	type FatalError,
+	type Sponsor,
+	type AuthProviders,
+	type Battery,
+	type Vehicle,
+} from "@/types/evcc";
+
+export default defineComponent({
+	name: "BottomTabBar",
+	components: {
+		BatteryIcon,
+		ForecastGraphIcon,
+		SessionsIcon,
+		SankeyIcon,
+		Item,
+		MoreItem,
+	},
+	props: {
+		battery: { type: Object as PropType<Battery> },
+		batteryMode: { type: String as PropType<BATTERY_MODE> },
+		vehicles: { type: Object as PropType<Record<string, Vehicle>>, default: () => ({}) },
+		authProviders: { type: Object as PropType<AuthProviders>, default: () => ({}) },
+		sponsor: { type: Object as PropType<Sponsor>, default: () => ({}) },
+		fatal: { type: Array as PropType<FatalError[]>, default: () => [] },
+		experimental: Boolean,
+		authDisabled: Boolean,
+		offline: Boolean,
+		startupCompleted: Boolean,
+		optimizer: Boolean,
+		installed: String,
+		availableVersion: String,
+		customBrand: String,
+	},
+	computed: {
+		hidden() {
+			return this.offline || this.startupCompleted === false;
+		},
+		batterySoc() {
+			return this.battery?.soc;
+		},
+		batteryConfigured() {
+			return (this.battery?.devices?.length ?? 0) > 0;
+		},
+		moreActive() {
+			const mainTabs = ["/", "/energy", "/battery", "/forecast", "/sessions"];
+			return !mainTabs.includes(this.$route.path);
+		},
+	},
+});
+</script>
+
+<style scoped>
+.bottom-tab-bar {
+	z-index: 1030;
+	background: var(--tab-bar-background);
+	border-top: 1px solid var(--evcc-gray-25);
+	box-shadow: 0 -1px 6px var(--evcc-gray-25);
+	transition: transform var(--evcc-transition-fast) ease-in;
+}
+
+@supports (backdrop-filter: blur(1px)) {
+	.bottom-tab-bar {
+		background: color-mix(in srgb, var(--tab-bar-background) 60%, transparent);
+		backdrop-filter: var(--evcc-backdrop-blur);
+	}
+}
+
+.bottom-tab-bar--hidden {
+	transform: translateY(100%);
+}
+
+:root.dark .bottom-tab-bar {
+	border-top-color: var(--bs-border-color);
+}
+</style>
