@@ -1,5 +1,11 @@
 import CircuitsModal from "./CircuitsModal.vue";
-import { ConfigType, type ConfigCircuit, type ConfigMeter } from "@/types/evcc";
+import {
+  ConfigType,
+  type ConfigCircuit,
+  type ConfigMeter,
+  type ConfigLoadpoint,
+  type ConfigCharger,
+} from "@/types/evcc";
 import type { Meta, StoryFn } from "@storybook/vue3";
 
 export default {
@@ -43,6 +49,48 @@ const circuits: ConfigCircuit[] = [
   circuit("garden", "Garden", { parent: "home" }),
 ];
 
+const chargers: ConfigCharger[] = [
+  {
+    id: 1,
+    name: "car-charger",
+    type: ConfigType.Template,
+    deviceProduct: "Demo charger",
+    config: {},
+  },
+  { id: 2, name: "heatpump", type: ConfigType.Heatpump, deviceProduct: "Heatpump", config: {} },
+];
+
+const loadpoint = (
+  id: number,
+  title: string,
+  charger: string,
+  circuit?: string
+): ConfigLoadpoint => ({
+  id,
+  name: `loadpoint${id}`,
+  title,
+  charger,
+  circuit,
+  meter: "",
+  vehicle: "",
+  defaultMode: "",
+  priority: 0,
+  phasesConfigured: 0,
+  minCurrent: 6,
+  maxCurrent: 16,
+  smartCostLimit: null,
+  thresholds: { enable: { delay: 0, threshold: 0 }, disable: { delay: 0, threshold: 0 } },
+  soc: { poll: { mode: "", interval: 0 }, estimate: false },
+  ui: { minTemp: 0, maxTemp: 40 },
+});
+
+const loadpoints: ConfigLoadpoint[] = [
+  loadpoint(1, "Garage", "car-charger", "garage"),
+  loadpoint(2, "Carport", "car-charger", "carport"),
+  loadpoint(3, "Heat pump", "heatpump"),
+  loadpoint(4, "Garden", "car-charger"),
+];
+
 const Template: StoryFn<typeof CircuitsModal> = (args) => ({
   components: { CircuitsModal },
   setup() {
@@ -60,10 +108,10 @@ const Template: StoryFn<typeof CircuitsModal> = (args) => ({
 });
 
 export const Empty = Template.bind({});
-Empty.args = { circuits: [], gridMeter };
+Empty.args = { circuits: [], gridMeter, loadpoints: [], chargers: [] };
 
 export const MainOnly = Template.bind({});
-MainOnly.args = { circuits: circuits.slice(0, 1), gridMeter };
+MainOnly.args = { circuits: circuits.slice(0, 1), gridMeter, loadpoints: [], chargers: [] };
 
 export const Tree = Template.bind({});
-Tree.args = { circuits, gridMeter };
+Tree.args = { circuits, gridMeter, loadpoints, chargers };
