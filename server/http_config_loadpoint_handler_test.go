@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -68,4 +70,43 @@ func TestDeleteLoadpointDisabledNilInstance(t *testing.T) {
 		deleteLoadpointHandler()(rec, req)
 	})
 	assert.Equal(t, http.StatusOK, rec.Code)
+}
+
+// TestUpdateLoadpointCircuit verifies that assigning and removing a circuit
+// reference on a configurable loadpoint works, including removal via null/empty.
+func TestUpdateLoadpointCircuit(t *testing.T) {
+	require.NoError(t, db.NewInstance("sqlite", ":memory:"))
+
+	conf, err := config.AddConfig(templates.Loadpoint,
+		map[string]any{"charger": "wallbox", "title": "Garage", "circuit": "home"},
+	)
+	require.NoError(t, err)
+
+	var instance loadpoint.API // nil: test only the persisted config
+	dev := config.NewConfigurableDevice(&conf, instance)
+	require.NoError(t, config.Loadpoints().Add(dev))
+	t.Cleanup(func() { _ = config.Loadpoints().Delete(config.NameForID(conf.ID)) })
+
+	handler := updateLoadpointHandler()
+
+	// assign to garage
+	body, _ := json.Marshal(map[string]any{"circuit": "garage"})
+	req := httptest.NewRequest(http.MethodPut, "/", bytes.NewReader(body))
+	req = mux.SetURLVars(req, map[string]string{"id": strconv.Itoa(conf.ID)})
+	rec := httptest.NewRecorder()
+	handler(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "garage", dev.Config().Other["circuit"])
+
+	// remove circuit with null
+	body, _ = json.Marshal(map[string]any{"circuit": nil})
+	req = httptest.NewRequest(http.MethodPut, "/", bytes.NewReader(body))
+	req = mux.SetURLVars(req, map[string]string{"id": strconv.Itoa(conf.ID)})
+	rec = httptest.NewRecorder()
+	handler(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	_, exists := dev.Config().Other["circuit"]
+	assert.False(t, exists)
 }

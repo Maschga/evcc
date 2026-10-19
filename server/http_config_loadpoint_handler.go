@@ -296,6 +296,22 @@ func updateLoadpointHandler() http.HandlerFunc {
 		}
 
 		other := configurable.Config().Other
+
+		// Explicitly handle circuit assignment/removal because StaticConfig.Circuit
+		// uses omitempty, so an empty string would be dropped by mergo.Merge and an
+		// existing circuit reference could not be removed.
+		if rawCircuit, ok := payload["circuit"]; ok {
+			if rawCircuit == nil {
+				delete(other, "circuit")
+			} else if s, ok := rawCircuit.(string); ok && s == "" {
+				delete(other, "circuit")
+			} else {
+				other["circuit"] = rawCircuit
+			}
+			// Prevent mergo from re-adding the old circuit value from src.
+			delete(src, "circuit")
+		}
+
 		if err := mergo.Merge(&other, src, mergo.WithOverride); err != nil {
 			jsonError(w, http.StatusBadRequest, err)
 			return
