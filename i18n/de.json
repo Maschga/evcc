@@ -188,13 +188,17 @@
     "circuits": {
       "addMainCircuit": "Hauptstromkreis hinzufügen",
       "addSubCircuit": "Unterstromkreis hinzufügen",
-      "chargingPointsNote": "Ladepunkte & Heizgeräte weist du in ihren jeweiligen Einstellungen einem Stromkreis zu.",
+      "chargingPointsNote": "Ziehe oder klicke einen Ladepunkt/Heizung, um ihn einem Stromkreis zuzuweisen. Änderungen werden sofort gespeichert.",
       "description": "Stellt sicher, dass die Summe aller Ladepunkte und Heizungen, die an einen Stromkreis angeschlossen sind, die konfigurierten Leistungs- und Stromgrenzen nicht überschreitet. Stromkreise können verschachtelt werden, um eine Hierarchie aufzubauen.",
       "legacyWarning": "Neue Stromkreis-Konfiguration verfügbar! Entferne und speichere deine Konfiguration hier, um den neuen geführten Prozess zu verwenden. Anschließend ist ein Neustart erforderlich.",
       "meterDedicated": "Zähler",
       "meterGrid": "Netz",
       "title": "Lastmanagement",
-      "usableMeters": "Verwendbare Zählerreferenzen"
+      "usableMeters": "Verwendbare Zählerreferenzen",
+      "notAssigned": "Nicht zugewiesen",
+      "notAssignedEmpty": "Alle Ladepunkte und Heizungen sind einem Stromkreis zugewiesen.",
+      "dropToAssign": "Zum Zuweisen hier ablegen",
+      "dropToRemove": "Zum Entfernen hier ablegen"
     },
     "combobox": {
       "count": "{count} Vorschläge",

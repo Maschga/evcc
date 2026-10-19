@@ -555,6 +555,16 @@ export interface ConfigLoadpoint {
   ui: LoadpointUi;
 }
 
+/** Loadpoint data used for circuit assignment UI. */
+export interface AssignmentLoadpoint {
+  id?: number;
+  name?: string;
+  title: string;
+  circuit?: string;
+  charger: string;
+  isHeater: boolean;
+}
+
 /** Display-only UI settings of a loadpoint. */
 export interface LoadpointUi {
   /** Lower bound of the temperature scale for heating devices, in degrees. */

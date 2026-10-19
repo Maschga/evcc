@@ -5,13 +5,15 @@
 			'drag-drop-item--hidden': !visible,
 		}"
 		role="listitem"
+		:data-id="dataId"
 		:aria-label="$t('config.general.dragItem', { title })"
 		tabindex="0"
 	>
 		<div class="drag-handle me-2" aria-hidden="true">
 			<shopicon-regular-menu></shopicon-regular-menu>
 		</div>
-		<div class="flex-grow-1">
+		<component :is="icon" v-if="icon" class="flex-shrink-0 me-2" />
+		<div class="flex-grow-1" @click="$emit('click', value)">
 			<slot>
 				{{ title }}
 			</slot>
@@ -31,7 +33,11 @@ export default defineComponent({
 	props: {
 		title: { type: String, default: "" },
 		visible: { type: Boolean, default: true },
+		icon: { type: String, default: "" },
+		dataId: { type: String, default: "" },
+		value: { type: Object, default: () => undefined },
 	},
+	emits: ["click"],
 });
 </script>
 

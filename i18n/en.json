@@ -187,14 +187,18 @@
     },
     "circuits": {
       "addSubCircuit": "Add sub-circuit",
-      "chargingPointsNote": "Assign charging points & heaters to a circuit in their own settings.",
+      "chargingPointsNote": "Drag or click a charging point/heater to assign it to a circuit. Changes are saved immediately.",
       "addMainCircuit": "Add root circuit",
       "description": "Ensures that the sum of all charging points and heaters connected to a circuit does not exceed the configured power and current limits. Circuits can be nested to build a hierarchy.",
       "legacyWarning": "New circuits configuration available! Remove and save your configuration here to use the new guided process. A restart is required afterwards.",
       "title": "Load Management",
       "meterDedicated": "Meter",
       "meterGrid": "Grid",
-      "usableMeters": "Usable meter references"
+      "usableMeters": "Usable meter references",
+      "notAssigned": "Not assigned",
+      "notAssignedEmpty": "All charging points and heaters are assigned to a circuit.",
+      "dropToAssign": "Drop to assign",
+      "dropToRemove": "Drop to remove"
     },
     "consumer": {
       "description": "Tracks smaller, non-controllable appliances (refrigerator, washing machine, ...). Gives you a better overview of your consumption.",

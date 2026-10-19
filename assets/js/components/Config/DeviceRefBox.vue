@@ -5,8 +5,9 @@
 			compact ? 'py-0 px-2' : 'py-2 px-3',
 			{ invalid: error },
 			disabled ? 'disabled-region evcc-gray' : '',
+			{ selected: selected },
 		]"
-		@click="$emit('edit')"
+		@click="$emit(selectable ? 'select' : 'edit')"
 	>
 		<div class="flex-grow-1 text-truncate min-w-0">
 			<slot>
@@ -23,7 +24,7 @@
 		>
 			{{ $t("config.general.disabled") }}
 		</button>
-		<DeviceCardEditIcon :editable="true" :danger="error" @edit="$emit('edit')" />
+		<DeviceCardEditIcon :editable="true" :danger="error" @click.stop="$emit('edit')" />
 	</label>
 </template>
 
@@ -39,8 +40,10 @@ export default {
 		error: { type: Boolean, default: false },
 		compact: { type: Boolean, default: false },
 		disabled: { type: Boolean, default: false },
+		selectable: { type: Boolean, default: false },
+		selected: { type: Boolean, default: false },
 	},
-	emits: ["edit", "enable"],
+	emits: ["edit", "enable", "select"],
 };
 </script>
 
@@ -61,5 +64,9 @@ export default {
 		var(--evcc-gray-25) 10px,
 		var(--evcc-gray-25) 20px
 	);
+}
+.selected {
+	border-color: var(--bs-success);
+	background-color: rgba(15, 222, 65, 0.12);
 }
 </style>

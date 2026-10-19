@@ -101,6 +101,13 @@ export function handleError(e: any, msg: string) {
   alert(message);
 }
 
+// assignCircuit updates the circuit reference of a loadpoint.
+// Passing null or an empty string removes the assignment.
+export async function assignCircuit(loadpointId: number, circuit: string | null) {
+  const { data } = await api.get(`config/loadpoints/${loadpointId}`);
+  return api.put(`config/loadpoints/${loadpointId}`, { ...data, circuit });
+}
+
 export function applyDefaultsFromTemplate(template: Template | null, values: DeviceValues) {
   const params = template?.Params || [];
   params.forEach((p) => {
