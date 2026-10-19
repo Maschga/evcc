@@ -3,17 +3,22 @@
 		class="drag-drop-item d-flex align-items-center p-2 mb-2 border rounded"
 		:class="{
 			'drag-drop-item--hidden': !visible,
+			'drag-drop-item--selected': selected,
 		}"
 		role="listitem"
 		:data-id="dataId"
 		:aria-label="$t('config.general.dragItem', { title })"
 		tabindex="0"
+		:aria-selected="selected"
+		@click.stop="$emit('click', value)"
+		@keydown.enter.self.stop.prevent="$emit('click', value)"
+		@keydown.space.self.stop.prevent="$emit('click', value)"
 	>
 		<div class="drag-handle me-2" aria-hidden="true">
 			<shopicon-regular-menu></shopicon-regular-menu>
 		</div>
 		<component :is="icon" v-if="icon" class="flex-shrink-0 me-2" />
-		<div class="flex-grow-1" @click="$emit('click', value)">
+		<div class="flex-grow-1">
 			<slot>
 				{{ title }}
 			</slot>
@@ -33,6 +38,7 @@ export default defineComponent({
 	props: {
 		title: { type: String, default: "" },
 		visible: { type: Boolean, default: true },
+		selected: { type: Boolean, default: false },
 		icon: { type: String, default: "" },
 		dataId: { type: String, default: "" },
 		value: { type: Object, default: () => undefined },
@@ -53,6 +59,11 @@ export default defineComponent({
 
 .drag-drop-item:active {
 	cursor: grabbing;
+}
+
+.drag-drop-item--selected {
+	border-color: var(--bs-success) !important;
+	background-color: rgba(15, 222, 65, 0.12);
 }
 
 .drag-drop-item--hidden {

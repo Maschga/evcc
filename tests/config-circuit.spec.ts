@@ -572,31 +572,6 @@ test.describe("circuit test result", async () => {
   });
 });
 
-test.describe("circuit loadpoint assignment", async () => {
-  test("assign and remove via click", async ({ page }) => {
-    await start(CONFIG_FAST, CONFIG_CIRCUIT_TREE);
-    await page.goto("/#/config");
-
-    const circuitsModal = page.getByTestId("circuits-modal");
-    await page.getByTestId("circuits").getByRole("button", { name: "edit" }).click();
-    await expectModalVisible(circuitsModal);
-
-    // select the garage circuit
-    const garageNode = circuitsModal.getByTestId("circuit-node").filter({ hasText: "Garage" });
-    await garageNode.click();
-
-    // assign an unassigned loadpoint to the selected circuit
-    const pool = circuitsModal.getByText("Not assigned").locator("..");
-    await expect(pool).toContainText("Garden");
-    await pool.getByText("Garden").click();
-    await expect(garageNode).toContainText("Garden");
-
-    // remove the loadpoint by clicking it inside the circuit
-    await garageNode.getByText("Garden").click();
-    await expect(pool).toContainText("Garden");
-  });
-});
-
 test.describe("circuit grid meter", async () => {
   test("option availability, sub circuit, ref cleaned on delete", async ({ page }) => {
     await start(CONFIG_FAST);

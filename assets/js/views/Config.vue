@@ -592,6 +592,7 @@
 					:grid-meter="gridMeter"
 					:loadpoints="loadpoints"
 					:chargers="chargers"
+					:charger-values="deviceValues['charger']"
 					@changed="loadDirty"
 				/>
 				<CircuitModal

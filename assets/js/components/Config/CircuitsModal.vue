@@ -11,6 +11,8 @@
 		no-buttons
 		:autofocus="false"
 		@changed="$emit('changed')"
+		@open="resetSelection"
+		@keydown.esc="resetSelection"
 	>
 		<template #default>
 			<NewDeviceButton
@@ -26,7 +28,9 @@
 					:empty-text="$t('config.circuits.notAssignedEmpty')"
 					group="loadpoints"
 					:items="unassignedLoadpoints"
+					:selected-loadpoint="selectedLoadpoint"
 					@transfer="handlePoolTransfer"
+					@assign="assignLoadpoint({ loadpointId: selectedLoadpoint, circuit: null })"
 					@click="handlePoolClick"
 				/>
 				<CircuitsTree
@@ -34,7 +38,8 @@
 					:circuits-tree="configCircuitTree(circuits)"
 					:grid-meter="gridMeter"
 					:loadpoints="assignmentLoadpoints"
-					:selected-circuit="selectedCircuit"
+					:selected-loadpoint="selectedLoadpoint"
+					@select-loadpoint="handlePoolClick"
 					@select-circuit="selectCircuit"
 					@assign-loadpoint="assignLoadpoint"
 				/>
@@ -43,7 +48,12 @@
 				</span>
 			</div>
 			<div class="d-flex justify-content-end mt-4">
-				<button type="button" class="btn btn-outline-primary px-4" data-bs-dismiss="modal">
+				<button
+					type="button"
+					class="btn btn-outline-primary px-4"
+					data-bs-dismiss="modal"
+					@click="resetSelection"
+				>
 					{{ $t("config.general.close") }}
 				</button>
 			</div>
@@ -66,7 +76,7 @@ import NewDeviceButton from "./NewDeviceButton.vue";
 import { openModal } from "@/configModal.ts";
 import { configCircuitTree } from "@/utils/circuits.ts";
 import { assignCircuit } from "./DeviceModal/index.ts";
-import { isHeaterCharger } from "@/utils/charger.ts";
+
 import type { PropType } from "vue";
 
 export default {
@@ -78,23 +88,31 @@ export default {
 		gridMeter: { type: Object as PropType<ConfigMeter> },
 		loadpoints: { type: Array as PropType<ConfigLoadpoint[]>, default: () => [] },
 		chargers: { type: Array as PropType<ConfigCharger[]>, default: () => [] },
+		chargerValues: {
+			type: Object as PropType<Record<string, { heating?: { value?: boolean } }>>,
+			default: () => ({}),
+		},
 	},
 	data() {
 		return {
-			selectedCircuit: "",
+			selectedLoadpoint: undefined as number | undefined,
+			assignmentOverrides: {} as Record<number, string | null>,
+			saving: false,
 		};
 	},
 	computed: {
 		assignmentLoadpoints(): AssignmentLoadpoint[] {
 			return this.loadpoints.map((lp) => {
-				const charger = this.chargers.find((c) => c.name === lp.charger);
 				return {
 					id: lp.id,
 					name: lp.name,
 					title: lp.title || lp.name || String(lp.id),
-					circuit: lp.circuit,
+					circuit:
+						lp.id !== undefined && lp.id in this.assignmentOverrides
+							? this.assignmentOverrides[lp.id] || undefined
+							: lp.circuit,
 					charger: lp.charger,
-					isHeater: isHeaterCharger(charger),
+					isHeater: this.chargerValues[lp.charger]?.heating?.value === true,
 				};
 			});
 		},
@@ -108,7 +126,10 @@ export default {
 			await openModal("circuit");
 		},
 		selectCircuit(name: string) {
-			this.selectedCircuit = name;
+			void this.assignLoadpoint({ loadpointId: this.selectedLoadpoint, circuit: name });
+		},
+		resetSelection() {
+			this.selectedLoadpoint = undefined;
 		},
 		async assignLoadpoint({
 			loadpointId,
@@ -117,12 +138,19 @@ export default {
 			loadpointId?: number;
 			circuit: string | null;
 		}) {
-			if (loadpointId === undefined) return;
+			if (loadpointId === undefined || this.saving) return;
+			const lp = this.assignmentLoadpoints.find((lp) => lp.id === loadpointId);
+			if (!lp || (lp.circuit || null) === (circuit || null)) return;
+			this.saving = true;
 			try {
 				await assignCircuit(loadpointId, circuit);
+				this.assignmentOverrides[loadpointId] = circuit;
+				this.resetSelection();
 				this.$emit("changed");
-			} catch (e) {
-				console.error(e);
+			} catch {
+				// The API interceptor reports failures through global notifications.
+			} finally {
+				this.saving = false;
 			}
 		},
 		async handlePoolTransfer(event: { item: AssignmentLoadpoint; from: string; to: string }) {
@@ -130,9 +158,8 @@ export default {
 			await this.assignLoadpoint({ loadpointId: event.item.id, circuit: null });
 		},
 		async handlePoolClick(lp: AssignmentLoadpoint) {
-			if (this.selectedCircuit) {
-				await this.assignLoadpoint({ loadpointId: lp.id, circuit: this.selectedCircuit });
-			}
+			if (this.saving) return;
+			this.selectedLoadpoint = this.selectedLoadpoint === lp.id ? undefined : lp.id;
 		},
 	},
 };

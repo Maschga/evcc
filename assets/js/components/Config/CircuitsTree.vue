@@ -1,59 +1,61 @@
 <template>
 	<div data-testid="circuit-node">
-		<div class="d-flex align-items-stretch row-spacing">
-			<template v-if="depth > 0">
-				<span v-for="i in depth - 1" :key="i" class="tree-col">
-					<span class="tree-line" />
-				</span>
-				<span class="tree-col">
-					<span class="tree-line" />
-					<span class="tree-knick" />
-				</span>
-			</template>
-			<DeviceRefBox
-				compact
-				class="flex-grow-1 min-w-0"
-				selectable
-				:selected="selectedCircuit === circuitsTree?.name"
-				@select="selectCircuit"
-				@edit="editCircuit"
-			>
-				<span class="d-flex align-items-center gap-2 min-w-0">
-					<span class="fw-bold text-truncate">{{ circuitsTree?.deviceTitle }}</span>
-					<span class="ms-auto me-2 evcc-gray small tabular d-flex gap-1 min-w-0">
-						<span class="text-nowrap">{{ limitsLabel }}</span>
-						<span v-if="limitsLabel && meterLabel" aria-hidden="true">·</span>
-						<span class="text-truncate">{{ meterLabel }}</span>
+		<DragDropList
+			transfer
+			group="loadpoints"
+			:name="circuitsTree?.name"
+			:label="circuitsTree?.deviceTitle"
+			:values="assignedLoadpoints()"
+			@transfer="handleTransfer"
+			class="circuit-drop-target"
+		>
+			<div class="d-flex align-items-stretch row-spacing">
+				<template v-if="depth > 0">
+					<span v-for="i in depth - 1" :key="i" class="tree-col">
+						<span class="tree-line" />
 					</span>
-				</span>
-			</DeviceRefBox>
-		</div>
-
-		<div class="d-flex align-items-stretch row-spacing assigned-loadpoints">
-			<span v-for="i in depth" :key="i" class="tree-col" />
-			<span class="tree-col" />
-			<div class="flex-grow-1 min-w-0">
-				<div v-if="assignedLoadpoints().length" class="text-success small mb-1">
-					{{ $t("config.circuits.dropToAssign") }}
-				</div>
-				<DragDropList
-					transfer
-					group="loadpoints"
-					:values="assignedLoadpoints()"
-					@transfer="handleTransfer"
+					<span class="tree-col">
+						<span class="tree-line" />
+						<span class="tree-knick" />
+					</span>
+				</template>
+				<DeviceRefBox
+					compact
+					role="button"
+					:aria-label="circuitsTree?.deviceTitle"
+					tabindex="0"
+					@keydown.enter.self.prevent="activateCircuit"
+					@keydown.space.self.prevent="activateCircuit"
+					class="flex-grow-1 min-w-0"
+					:selectable="selectedLoadpoint !== undefined"
+					@select="selectCircuit"
+					@edit="editCircuit"
 				>
-					<DragDropItem
-						v-for="lp in assignedLoadpoints()"
-						:key="lp.id"
-						:data-id="String(lp.id)"
-						:title="lp.title"
-						:icon="loadpointIcon(lp)"
-						:value="lp"
-						@click="removeLoadpoint"
-					/>
-				</DragDropList>
+					<span class="d-flex align-items-center gap-2 min-w-0">
+						<span class="fw-bold text-truncate">{{ circuitsTree?.deviceTitle }}</span>
+						<span class="circuit-drop-hint text-success small">{{
+							$t("config.circuits.dropToAssign")
+						}}</span>
+						<span class="ms-auto me-2 evcc-gray small tabular d-flex gap-1 min-w-0">
+							<span class="text-nowrap">{{ limitsLabel }}</span>
+							<span v-if="limitsLabel && meterLabel" aria-hidden="true">·</span>
+							<span class="text-truncate">{{ meterLabel }}</span>
+						</span>
+					</span>
+				</DeviceRefBox>
 			</div>
-		</div>
+
+			<DragDropItem
+				v-for="lp in assignedLoadpoints()"
+				:key="lp.id"
+				:data-id="String(lp.id)"
+				:title="lp.title"
+				:icon="loadpointIcon(lp)"
+				:value="lp"
+				:selected="selectedLoadpoint === lp.id"
+				@click="$emit('select-loadpoint', $event)"
+			/>
+		</DragDropList>
 
 		<CircuitsTree
 			v-for="child in circuitsTree?.children"
@@ -63,7 +65,8 @@
 			:grid-meter="gridMeter"
 			:loadpoints="loadpoints"
 			:chargers="chargers"
-			:selected-circuit="selectedCircuit"
+			:selected-loadpoint="selectedLoadpoint"
+			@select-loadpoint="$emit('select-loadpoint', $event)"
 			@select-circuit="$emit('select-circuit', $event)"
 			@assign-loadpoint="$emit('assign-loadpoint', $event)"
 		/>
@@ -106,8 +109,8 @@ import {
 	type AssignmentLoadpoint,
 	type ConfigCharger,
 } from "@/types/evcc";
-import "@h2d2/shopicons/es/regular/car";
-import "@h2d2/shopicons/es/regular/heat";
+import "@h2d2/shopicons/es/regular/car1";
+import "@h2d2/shopicons/es/regular/thermometerhalf";
 
 export default {
 	name: "CircuitsTree",
@@ -122,9 +125,13 @@ export default {
 		gridMeter: { type: Object as PropType<ConfigMeter> },
 		loadpoints: { type: Array as PropType<AssignmentLoadpoint[]>, default: () => [] },
 		chargers: { type: Array as PropType<ConfigCharger[]>, default: () => [] },
-		selectedCircuit: { type: String, default: "" },
+		selectedLoadpoint: { type: Number },
 	},
 	methods: {
+		activateCircuit() {
+			if (this.selectedLoadpoint !== undefined) this.selectCircuit();
+			else this.editCircuit();
+		},
 		addSub() {
 			openModal("circuit", { parent: this.circuitsTree?.id });
 		},
@@ -139,11 +146,9 @@ export default {
 			return this.loadpoints.filter((lp) => lp.circuit === circuitName);
 		},
 		loadpointIcon(lp: AssignmentLoadpoint): string {
-			return lp.isHeater ? "shopicon-regular-heat" : "shopicon-regular-car";
+			return lp.isHeater ? "shopicon-regular-thermometerhalf" : "shopicon-regular-car1";
 		},
-		removeLoadpoint(lp: AssignmentLoadpoint) {
-			this.$emit("assign-loadpoint", { loadpointId: lp.id, circuit: null });
-		},
+
 		handleTransfer(event: { item: AssignmentLoadpoint; from: string; to: string }) {
 			if (event.to === event.from) return;
 			if (event.to === this.circuitsTree?.name) {
@@ -154,7 +159,7 @@ export default {
 			}
 		},
 	},
-	emits: ["select-circuit", "assign-loadpoint"],
+	emits: ["select-circuit", "select-loadpoint", "assign-loadpoint"],
 	data() {
 		return { ICON_SIZE };
 	},
@@ -183,6 +188,19 @@ export default {
 </script>
 
 <style scoped>
+.circuit-drop-target {
+	min-height: 48px;
+	border-radius: var(--bs-border-radius);
+}
+.circuit-drop-target.drag-drop-list--over {
+	background-color: rgba(15, 222, 65, 0.12);
+}
+.circuit-drop-hint {
+	display: none;
+}
+.drag-drop-list--over .circuit-drop-hint {
+	display: inline;
+}
 .row-spacing {
 	margin-bottom: 8px;
 }

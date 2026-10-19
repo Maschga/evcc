@@ -114,4 +114,10 @@ export const MainOnly = Template.bind({});
 MainOnly.args = { circuits: circuits.slice(0, 1), gridMeter, loadpoints: [], chargers: [] };
 
 export const Tree = Template.bind({});
-Tree.args = { circuits, gridMeter, loadpoints, chargers };
+Tree.args = {
+  circuits,
+  gridMeter,
+  loadpoints,
+  chargers,
+  chargerValues: { heatpump: { heating: { value: true } } },
+};

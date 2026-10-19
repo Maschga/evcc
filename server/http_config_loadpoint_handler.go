@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -48,6 +49,7 @@ func getLoadpointDynamicConfig(lp loadpoint.API) loadpoint.DynamicConfig {
 		BatteryBoostLimit:        lp.GetBatteryBoostLimit(),
 		LimitEnergy:              lp.GetLimitEnergy(),
 		LimitSoc:                 lp.GetLimitSoc(),
+		MinSoc:                   lp.GetMinSoc(),
 	}
 }
 
@@ -287,6 +289,27 @@ func updateLoadpointHandler() http.HandlerFunc {
 		}
 
 		instance := dev.Instance()
+		if instance != nil {
+			// Dynamic setters apply every field, so retain values omitted from partial updates.
+			data, err := json.Marshal(getLoadpointDynamicConfig(instance))
+			if err != nil {
+				jsonError(w, http.StatusBadRequest, err)
+				return
+			}
+			var current map[string]any
+			if err := json.Unmarshal(data, &current); err != nil {
+				jsonError(w, http.StatusBadRequest, err)
+				return
+			}
+			for key, value := range payload {
+				current[key] = value
+			}
+			dynamic, _, err = loadpoint.SplitConfig(current)
+			if err != nil {
+				jsonError(w, http.StatusBadRequest, err)
+				return
+			}
+		}
 
 		// merge static config to maintain the dynamic part; without live instance
 		// merge the full payload since dynamic setters cannot persist it

@@ -1,5 +1,5 @@
 <template>
-	<label
+	<div
 		class="root d-flex align-items-center justify-content-between"
 		:class="[
 			compact ? 'py-0 px-2' : 'py-2 px-3',
@@ -25,7 +25,7 @@
 			{{ $t("config.general.disabled") }}
 		</button>
 		<DeviceCardEditIcon :editable="true" :danger="error" @click.stop="$emit('edit')" />
-	</label>
+	</div>
 </template>
 
 <script lang="ts">
